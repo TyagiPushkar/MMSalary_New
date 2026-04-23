@@ -9,15 +9,22 @@ import {
   updateEmployeeDetailsThunk,
   updateEmployeeStatusThunk,
 } from "../store/slices/employeeSlice";
+import { fetchOfficesThunk } from "../store/slices/officeSlice";
 
 const HEADER_BLUE = "#1547bd";
 
 // Essential columns only for clean UI
 const ESSENTIAL_COLUMNS = [
-  { key: "employeeid", label: "Employee ID", minW: "min-w-[120px]" },
+  { key: "employeeid", label: "Employee ID", minW: "min-w-[100px]" },
   { key: "name", label: "Name", minW: "min-w-[140px]" },
   { key: "phone", label: "Phone", minW: "min-w-[110px]" },
-  { key: "officeid", label: "Office ID", minW: "min-w-[120px]" },
+  { key: "employee_role", label: "Role", minW: "min-w-[100px]" },
+  { key: "officeid", label: "Office ID", minW: "min-w-[100px]" },
+  {
+    key: "multi_officeids",
+    label: "Multiple Office",
+    minW: "min-w-[140px]",
+  },
 ];
 
 // All columns for detail view
@@ -26,6 +33,7 @@ const ALL_COLUMNS = [
   { key: "name", label: "Name" },
   { key: "phone", label: "Phone" },
   { key: "officeid", label: "Office ID" },
+  { key: "multiple_office", label: "Multiple Office" },
   { key: "location", label: "Location" },
   { key: "employee_role", label: "Employee Role" },
   { key: "aadhar_number", label: "Aadhar Number" },
@@ -88,11 +96,13 @@ function EmployeeListPage() {
   const [density, setDensity] = useState("normal");
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const [multiOfficeIds, setMultiOfficeIds] = useState([]);
 
   // Detail View Modal statsuper
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailRow, setDetailRow] = useState(null);
 
+  const { items: officeItems } = useSelector((state) => state.offices);
   // Edit Modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
@@ -107,6 +117,9 @@ function EmployeeListPage() {
 
   const [banner, setBanner] = useState(null);
   const [modalError, setModalError] = useState(null);
+  useEffect(() => {
+    dispatch(fetchOfficesThunk()); // ✅ ADD THIS
+  }, [dispatch]);
 
   useEffect(() => {
     if (listMode === "directory") {
@@ -159,6 +172,9 @@ function EmployeeListPage() {
     setBasic(row.basic ?? "");
     setDa(row.DA ?? "");
     setHra(row.HRA ?? "");
+    setMultiOfficeIds(
+      row.multi_officeids ? String(row.multi_officeids).split(",") : [],
+    );
     setEditModalOpen(true);
     setModalError(null);
   };
@@ -219,6 +235,7 @@ function EmployeeListPage() {
       basic,
       DA: da,
       HRA: hra,
+      multi_officeids: multiOfficeIds, // ✅ ADD THIS
     };
     try {
       const result = await dispatch(
@@ -738,6 +755,46 @@ function EmployeeListPage() {
                   onChange={(e) => setHra(e.target.value)}
                   className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
                 />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-2 block font-medium text-slate-700">
+                  Multi Office IDs
+                </span>
+                {/* this was the multi office IDs */}
+                <div className="grid max-h-40 grid-cols-2 gap-2 overflow-y-auto rounded-lg border border-slate-300 p-2">
+                  {(officeItems || []).map((office) => {
+                    const isChecked = multiOfficeIds.includes(
+                      String(office.id),
+                    );
+
+                    return (
+                      <label
+                        key={office.id}
+                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-slate-100"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setMultiOfficeIds((prev) => [
+                                ...prev,
+                                String(office.id),
+                              ]);
+                            } else {
+                              setMultiOfficeIds((prev) =>
+                                prev.filter((id) => id !== String(office.id)),
+                              );
+                            }
+                          }}
+                        />
+                        <span className="text-xs text-slate-700">
+                          {office.name || office.id}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
               </label>
             </div>
 

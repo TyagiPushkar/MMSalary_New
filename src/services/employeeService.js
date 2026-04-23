@@ -91,7 +91,8 @@ export const employeeService = {
       // console.log("Adding employee with payload by api services:", payload);
       const endpoint =
         user.type === "super"
-          ? `${PHP_BASE_URL}/Employee/mm_add_employee.php`
+          ? // ? `${PHP_BASE_URL}/Employee/mm_add_employee.php`
+            `${PHP_BASE_URL}/Employee/add_salary.php`
           : `${PHP_BASE_URL}/Employee/add_req_employe.php`;
       // const endpoint = `${PHP_BASE_URL}/Employee/add_req_employee.php`;
       const response = await axios.post(endpoint, payload, {
@@ -113,7 +114,7 @@ export const employeeService = {
       return { data: fallback.data };
     }
     const response = await axios.post(
-      `${PHP_BASE_URL}/update_employee_details.php`,
+      `${PHP_BASE_URL}/Employee/update_employee.php`,
       payload,
       {
         headers: {
