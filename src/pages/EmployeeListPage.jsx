@@ -756,20 +756,18 @@ function EmployeeListPage() {
                   className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
                 />
               </label>
-              <label className="block text-sm">
+              <label className="">
                 <span className="mb-2 block font-medium text-slate-700">
                   Multi Office IDs
                 </span>
                 {/* this was the multi office IDs */}
                 <div className="grid max-h-40 grid-cols-2 gap-2 overflow-y-auto rounded-lg border border-slate-300 p-2">
                   {(officeItems || []).map((office) => {
-                    const isChecked = multiOfficeIds.includes(
-                      String(office.id),
-                    );
+                    const isChecked = multiOfficeIds.includes(String(office));
 
                     return (
                       <label
-                        key={office.id}
+                        key={office}
                         className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-slate-100"
                       >
                         <input
@@ -779,18 +777,17 @@ function EmployeeListPage() {
                             if (e.target.checked) {
                               setMultiOfficeIds((prev) => [
                                 ...prev,
-                                String(office.id),
+                                String(office),
                               ]);
                             } else {
                               setMultiOfficeIds((prev) =>
-                                prev.filter((id) => id !== String(office.id)),
+                                prev.filter((id) => id !== String(office)),
                               );
                             }
                           }}
                         />
-                        <span className="text-xs text-slate-700">
-                          {office.name || office.id}
-                        </span>
+
+                        <span className="text-xs text-slate-700">{office}</span>
                       </label>
                     );
                   })}

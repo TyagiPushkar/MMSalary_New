@@ -8,18 +8,20 @@ export const fetchOfficesThunk = createAsyncThunk(
   "offices/fetchAll",
   async (_, thunkApi) => {
     try {
-      const { token, user } = thunkApi.getState().auth;
+      const { token } = thunkApi.getState().auth;
 
-      const response = await officeService.getoffice({ token, user });
+      const response = await officeService.getoffice({ token });
 
-      const dataArray = Array.isArray(response.data) ? response.data : [];
+      // console.log("[Service Response]", response);
 
-      console.log("[Office Fetch] Received data:", dataArray);
-
-      return dataArray;
+      if (!response.success) {
+        return thunkApi.rejectWithValue(response.message);
+      }
+      // console.log("Office data fetched successfully:", response.data);
+      return response.data || [];
     } catch (error) {
       return thunkApi.rejectWithValue(
-        error.response?.data?.message || error.message,
+        error.response?.data?.message || error.message || "Request failed",
       );
     }
   },
