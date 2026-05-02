@@ -35,7 +35,7 @@ function AddSalary({
       );
       if (response.data.status === true && Array.isArray(response.data.data)) {
         setOffices(response.data.data);
-        console.log("Fetched offices:", response.data.data);
+        // console.log("Fetched offices:", response.data.data);
       } else {
         setOffices([]);
       }
@@ -106,6 +106,8 @@ function AddSalary({
       employee_id: selectedEmployee?.id || selectedEmployee?.employeeid,
     };
 
+    // console.log("1 process Submitting salary with payload:", payload);
+
     onSubmit?.(e, payload);
   };
 
@@ -165,45 +167,6 @@ function AddSalary({
             />
           </div>
 
-          {/* Office Selection */}
-          <div>
-            <label className="block text-xs font-bold text-slate-800 mb-3">
-              Select Offices * ({localOffices.length} selected)
-            </label>
-
-            {officesLoading ? (
-              <div className="text-center py-4 border rounded-lg text-slate-500">
-                Loading offices...
-              </div>
-            ) : offices.length === 0 ? (
-              <div className="text-center py-4 border rounded-lg text-slate-500">
-                No offices found
-              </div>
-            ) : (
-              <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-300 p-2">
-                {offices.map((off) => {
-                  const id = String(off.id || off); // Handle both object or primitive
-                  const name = off.name || off.office_name || `Office ${id}`;
-                  return (
-                    <label
-                      key={id}
-                      className="flex items-center gap-3 p-2 hover:bg-blue-50 cursor-pointer rounded"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={localOffices.includes(id)}
-                        onChange={() => handleOfficeToggle(id)}
-                        className="h-4 w-4 text-blue-600"
-                      />
-                      <span className="text-sm text-slate-700">{name}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Selected Pills */}
           <div className="flex flex-wrap gap-2">
             {localOffices.map((id) => (
               <span
@@ -221,6 +184,46 @@ function AddSalary({
               </span>
             ))}
           </div>
+
+          {/* Office Selection */}
+          <div>
+            <label className="block text-xs font-bold text-slate-800 mb-3">
+              Select Offices * ({localOffices.length} selected)
+            </label>
+
+            {officesLoading ? (
+              <div className="text-center py-4 border rounded-lg text-slate-500">
+                Loading offices...
+              </div>
+            ) : offices.length === 0 ? (
+              <div className="text-center py-4 border rounded-lg text-slate-500">
+                No offices found
+              </div>
+            ) : (
+              <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-300 p-2">
+                {offices.map((off, index) => {
+                  const id = String(off.id || off); // Handle both object or primitive
+                  const name = off.name || off.office_name || `${id}`;
+                  return (
+                    <label
+                      key={`${id}-${index}`} // ✅ FIX HERE
+                      className="flex items-center gap-3 p-2 hover:bg-blue-50 cursor-pointer rounded"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={localOffices.includes(id)}
+                        onChange={() => handleOfficeToggle(id)}
+                        className="h-4 w-4 text-blue-600"
+                      />
+                      <span className="text-sm text-slate-700">{name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Selected Pills */}
 
           {addError && (
             <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">

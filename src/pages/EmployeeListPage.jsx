@@ -306,7 +306,7 @@ function EmployeeListPage() {
               : undefined
           }
         >
-          Request Employees
+          Add Supervisor
         </button>
       </div>
 

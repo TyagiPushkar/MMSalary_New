@@ -184,7 +184,7 @@ function AddEmployeePage() {
       setTimeout(() => setBanner(null), 5000);
       return;
     }
-
+    // console.log("2 process Submitting salary with payload:", payload);
     try {
       // Make API call to add salary using axios
       const result = await axios.post(
@@ -202,6 +202,7 @@ function AddEmployeePage() {
       );
 
       if (result.data.success || result.data.status === true) {
+        //console.log("Salary added successfully:", result.data);
         setOpenSalary(false);
         setBanner({
           type: "success",
@@ -210,6 +211,7 @@ function AddEmployeePage() {
         setaddsalary({ salary: "", multi_officeids: [] });
         setTimeout(() => setBanner(null), 5000);
       } else {
+        // console.error("Failed to add salary:", result.data);
         setBanner({
           type: "error",
           text: result.data.message || "Failed to add salary",
