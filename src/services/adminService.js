@@ -37,6 +37,34 @@ export const adminService = {
     }
   },
 
+  async createSupervisor(supervisorData, token) {
+    try {
+      const endpoint = `${PHP_BASE_URL}/Admin/create_supervisor.php`;
+      const response = await axios.post(endpoint, supervisorData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      });
+      // Parse JSON response safely
+      const jsonData =
+        typeof response.data === "string"
+          ? JSON.parse(response.data)
+          : response.data;
+
+      return jsonData || { status: 200, success: true };
+    } catch (error) {
+      console.error("Error creating supervisor:", error);
+      const errorData =
+        typeof error.response?.data === "string"
+          ? JSON.parse(error.response.data)
+          : error.response?.data;
+
+      throw errorData || { message: "Failed to create supervisor" };
+    }
+  },
+
   async updateAdminStatus(adminId, isActive, token) {
     try {
       const endpoint = `${PHP_BASE_URL}/Admin/update_admin_status.php`;

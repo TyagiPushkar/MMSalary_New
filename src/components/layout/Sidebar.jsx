@@ -13,7 +13,7 @@ function Sidebar() {
   }
 
   return (
-    <aside className="w-64 rounded-xl border border-slate-200 bg-white p-3">
+    <aside className="w-44 rounded-xl border border-slate-200 bg-white p-3">
       <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
         Navigation
       </p>

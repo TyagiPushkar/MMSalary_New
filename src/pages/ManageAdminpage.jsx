@@ -289,7 +289,7 @@ function ManageAdminPage() {
         >
           All Employees
         </button>
-        <button
+        {/* <button
           type="button"
           onClick={() => {
             setListMode("requests");
@@ -308,7 +308,7 @@ function ManageAdminPage() {
           }
         >
           Request Employees
-        </button>
+        </button> */}
       </div>
 
       {banner && !editModalOpen && !detailModalOpen ? (

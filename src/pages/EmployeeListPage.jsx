@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import PageTitle from "../components/shared/PageTitle";
 import StatusToggle from "../components/shared/StatusToggle";
-import { FiEye, FiEdit2 } from "react-icons/fi";
+import { FiEye, FiEdit2, FiPlus } from "react-icons/fi";
 import {
   fetchEmployeesThunk,
   fetchRequestEmployeesThunk,
@@ -10,6 +10,7 @@ import {
   updateEmployeeStatusThunk,
 } from "../store/slices/employeeSlice";
 import { fetchOfficesThunk } from "../store/slices/officeSlice";
+import { createSupervisorThunk } from "../store/slices/adminSlice";
 
 const HEADER_BLUE = "#1547bd";
 
@@ -90,13 +91,50 @@ function EmployeeListPage() {
     updateLoading,
     statusUpdateLoading,
   } = useSelector((state) => state.employees);
+  const userType = useSelector((state) => state.auth.user?.type);
 
   const [listMode, setListMode] = useState("directory");
   const [quickFilter, setQuickFilter] = useState("");
   const [density, setDensity] = useState("normal");
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const [hideSupervisors, setHideSupervisors] = useState(false);
   const [multiOfficeIds, setMultiOfficeIds] = useState([]);
+
+  //supervisor detail modal state
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [newSupervisor, setNewSupervisor] = useState({
+    admin_name: "",
+    email: "",
+    phone: "",
+    officeid: "",
+    city: "",
+    address: "",
+    lat: "",
+    lon: "",
+    admin_password: "",
+    type: "normal",
+    position: "",
+    station_type: "",
+  });
+  const openAddSupervisorModal = () => {
+    setNewSupervisor({
+      admin_name: "",
+      officeid: "",
+      email: "",
+      phone: "",
+      city: "",
+      address: "",
+      lat: "",
+      lon: "",
+      admin_password: "",
+      type: "normal",
+      position: "",
+      station_type: "",
+    });
+
+    setAddModalOpen(true);
+  };
 
   // Detail View Modal statsuper
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -125,7 +163,7 @@ function EmployeeListPage() {
     if (listMode === "directory") {
       dispatch(fetchEmployeesThunk());
     } else {
-      dispatch(fetchRequestEmployeesThunk());
+      dispatch(fetchEmployeesThunk());
     }
   }, [dispatch, listMode]);
 
@@ -134,15 +172,21 @@ function EmployeeListPage() {
 
   const filteredRows = useMemo(() => {
     const q = quickFilter.trim().toLowerCase();
-    if (!q) return tableRows;
-    return tableRows.filter((row) =>
-      Object.values(row).some((v) =>
-        String(v ?? "")
-          .toLowerCase()
-          .includes(q),
-      ),
-    );
-  }, [tableRows, quickFilter]);
+
+    return tableRows
+      .filter(
+        (row) =>
+          !hideSupervisors || row.employee_role?.toLowerCase() !== "supervisor",
+      )
+      .filter((row) => {
+        if (!q) return true;
+        return Object.values(row).some((v) =>
+          String(v ?? "")
+            .toLowerCase()
+            .includes(q),
+        );
+      });
+  }, [tableRows, quickFilter, hideSupervisors]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
 
@@ -256,13 +300,28 @@ function EmployeeListPage() {
     }
   };
 
+  const handleAddSupervisor = async () => {
+    try {
+      await dispatch(createSupervisorThunk(newSupervisor)).unwrap();
+
+      setBanner({ type: "success", text: "Supervisor added" });
+      setAddModalOpen(false);
+
+      dispatch(fetchEmployeesThunk());
+    } catch (err) {
+      setBanner({ type: "error", text: err });
+    }
+  };
+
   return (
     <section className="flex flex-col gap-4 overflow-hidden">
       <PageTitle
         title="Manage Employees"
         subtitle={
           listMode === "directory"
-            ? "Full directory (get_all / by office). Search, filter, view details, edit."
+            ? hideSupervisors
+              ? "Showing only non-supervisor employees for adding supervisor."
+              : "Full directory (get_all / by office). Search, filter, view details, edit."
             : "Request queue (getall_req_employee / Register by office). View and manage requests."
         }
       />
@@ -274,40 +333,45 @@ function EmployeeListPage() {
             setListMode("directory");
             setPage(1);
             setQuickFilter("");
+            setHideSupervisors(false);
+            dispatch(fetchEmployeesThunk());
           }}
           className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-            listMode === "directory"
+            !hideSupervisors
               ? "text-white shadow"
               : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
           }`}
           style={
-            listMode === "directory"
-              ? { backgroundColor: HEADER_BLUE }
-              : undefined
+            !hideSupervisors ? { backgroundColor: HEADER_BLUE } : undefined
           }
         >
           All Employees
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            setListMode("requests");
-            setPage(1);
-            setQuickFilter("");
-          }}
-          className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-            listMode === "requests"
-              ? "text-white shadow"
-              : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-          }`}
-          style={
-            listMode === "requests"
-              ? { backgroundColor: HEADER_BLUE }
-              : undefined
-          }
-        >
-          Add Supervisor
-        </button>
+        {/* only super admin can see the requests tab and add supervisor button */}
+        {userType === "super" && (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setListMode("directory");
+                setHideSupervisors(true);
+                setPage(1);
+                setQuickFilter("");
+                dispatch(fetchEmployeesThunk());
+              }}
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                hideSupervisors
+                  ? "text-white shadow"
+                  : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+              style={
+                hideSupervisors ? { backgroundColor: HEADER_BLUE } : undefined
+              }
+            >
+              Add Supervisor
+            </button>
+          </>
+        )}
       </div>
 
       {banner && !editModalOpen && !detailModalOpen ? (
@@ -333,27 +397,27 @@ function EmployeeListPage() {
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
             Toolbar
           </span>
-          <button
-            type="button"
-            className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium hover:bg-slate-50"
-            style={{ color: HEADER_BLUE }}
-            onClick={() => {
-              setQuickFilter("");
-              setPage(1);
-            }}
-          >
-            Clear filter
-          </button>
-          <button
-            type="button"
-            className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium hover:bg-slate-50"
-            style={{ color: HEADER_BLUE }}
-            onClick={() =>
-              setDensity((d) => (d === "normal" ? "compact" : "normal"))
-            }
-          >
-            Density: {density === "normal" ? "Standard" : "Compact"}
-          </button>
+          {/* <button
+              type="button"
+              className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium hover:bg-slate-50"
+              style={{ color: HEADER_BLUE }}
+              onClick={() => {
+                setQuickFilter("");
+                setPage(1);
+              }}
+            >
+              Clear filter
+            </button>
+            <button
+              type="button"
+              className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium hover:bg-slate-50"
+              style={{ color: HEADER_BLUE }}
+              onClick={() =>
+                setDensity((d) => (d === "normal" ? "compact" : "normal"))
+              }
+            >
+              Density: {density === "normal" ? "Standard" : "Compact"}
+            </button> */}
           <button
             type="button"
             className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium hover:bg-slate-50"
@@ -367,6 +431,7 @@ function EmployeeListPage() {
           >
             Export CSV
           </button>
+
           <div className="ml-auto flex min-w-[200px] max-w-md flex-1 items-center gap-2">
             <label htmlFor="emp-quick-filter" className="sr-only">
               Quick filter
@@ -455,7 +520,6 @@ function EmployeeListPage() {
                             <FiEye size={18} />
                           </button>
                         </td>
-
                         {/* Essential Columns */}
                         {ESSENTIAL_COLUMNS.map((col) => (
                           <td
@@ -466,7 +530,6 @@ function EmployeeListPage() {
                             {cellValue(row, col.key)}
                           </td>
                         ))}
-
                         {/* Status Toggle Slide Button */}
                         <td
                           className={`${cellPad} text-center whitespace-nowrap`}
@@ -478,20 +541,29 @@ function EmployeeListPage() {
                             loading={statusUpdateLoading}
                           />
                         </td>
-
-                        {/* Action Buttons */}
+                        {/* Action Button */}
                         <td className={`${cellPad} whitespace-nowrap`}>
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(row)}
-                            className="rounded-md p-1.5 text-sm transition hover:bg-blue-100"
-                            style={{
-                              color: HEADER_BLUE,
-                            }}
-                            title="Edit employee details"
-                          >
-                            <FiEdit2 size={18} />
-                          </button>
+                          {hideSupervisors ? (
+                            <button
+                              type="button"
+                              onClick={openAddSupervisorModal}
+                              className="rounded-md p-1.5 text-sm transition hover:bg-blue-100"
+                              style={{ color: HEADER_BLUE }}
+                              title="Add Action"
+                            >
+                              <FiPlus size={18} />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(row)}
+                              className="rounded-md p-1.5 text-sm transition hover:bg-blue-100"
+                              style={{ color: HEADER_BLUE }}
+                              title="Edit employee details"
+                            >
+                              <FiEdit2 size={18} />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -816,6 +888,145 @@ function EmployeeListPage() {
           </div>
         </div>
       ) : null}
+
+      {addModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white p-6 rounded-xl w-full max-w-lg">
+            <h2 className="text-lg font-semibold mb-4">Add Supervisor</h2>
+
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                placeholder="Name"
+                value={newSupervisor.admin_name}
+                onChange={(e) =>
+                  setNewSupervisor({
+                    ...newSupervisor,
+                    admin_name: e.target.value,
+                  })
+                }
+              />
+
+              <input
+                placeholder="Email"
+                value={newSupervisor.email}
+                onChange={(e) =>
+                  setNewSupervisor({ ...newSupervisor, email: e.target.value })
+                }
+              />
+
+              <input
+                placeholder="Phone"
+                value={newSupervisor.phone}
+                onChange={(e) =>
+                  setNewSupervisor({ ...newSupervisor, phone: e.target.value })
+                }
+              />
+
+              <input
+                placeholder="Office ID"
+                value={newSupervisor.officeid}
+                onChange={(e) =>
+                  setNewSupervisor({
+                    ...newSupervisor,
+                    officeid: e.target.value,
+                  })
+                }
+              />
+
+              <input
+                placeholder="City"
+                value={newSupervisor.city}
+                onChange={(e) =>
+                  setNewSupervisor({ ...newSupervisor, city: e.target.value })
+                }
+              />
+
+              <input
+                placeholder="Address"
+                value={newSupervisor.address}
+                onChange={(e) =>
+                  setNewSupervisor({
+                    ...newSupervisor,
+                    address: e.target.value,
+                  })
+                }
+              />
+
+              <input
+                placeholder="Lat"
+                value={newSupervisor.lat}
+                onChange={(e) =>
+                  setNewSupervisor({ ...newSupervisor, lat: e.target.value })
+                }
+              />
+
+              <input
+                placeholder="Lon"
+                value={newSupervisor.lon}
+                onChange={(e) =>
+                  setNewSupervisor({ ...newSupervisor, lon: e.target.value })
+                }
+              />
+
+              <input
+                placeholder="Password"
+                type="password"
+                value={newSupervisor.admin_password}
+                onChange={(e) =>
+                  setNewSupervisor({
+                    ...newSupervisor,
+                    admin_password: e.target.value,
+                  })
+                }
+              />
+
+              {/* TYPE DROPDOWN */}
+              <select
+                value={newSupervisor.type}
+                onChange={(e) =>
+                  setNewSupervisor({ ...newSupervisor, type: e.target.value })
+                }
+              >
+                <option value="normal">normal</option>
+                <option value="super">super</option>
+              </select>
+
+              <input
+                placeholder="Position"
+                value={newSupervisor.position}
+                onChange={(e) =>
+                  setNewSupervisor({
+                    ...newSupervisor,
+                    position: e.target.value,
+                  })
+                }
+              />
+
+              <input
+                placeholder="Station Type"
+                value={newSupervisor.station_type}
+                onChange={(e) =>
+                  setNewSupervisor({
+                    ...newSupervisor,
+                    station_type: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setAddModalOpen(false)}>Cancel</button>
+
+              <button
+                className="bg-blue-600 text-white px-4 py-2 rounded"
+                onClick={handleAddSupervisor}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

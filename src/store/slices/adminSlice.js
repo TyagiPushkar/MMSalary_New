@@ -16,6 +16,22 @@ export const fetchAllAdminsThunk = createAsyncThunk(
   },
 );
 
+export const createSupervisorThunk = createAsyncThunk(
+  "admins/createSupervisor",
+  async (payload, thunkApi) => {
+    try {
+      const { token } = thunkApi.getState().auth;
+      const data = await adminService.createSupervisor(payload, token);
+      if (data.status !== 200 && !data.success) {
+        return thunkApi.rejectWithValue(data.message || "Creation failed");
+      }
+      return data;
+    } catch (error) {
+      return thunkApi.rejectWithValue(error.message || "Creation failed");
+    }
+  },
+);
+
 export const updateAdminStatusThunk = createAsyncThunk(
   "admins/updateStatus",
   async ({ adminId, isActive }, thunkApi) => {
@@ -105,6 +121,17 @@ const adminSlice = createSlice({
         state.updateLoading = false;
       })
       .addCase(updateAdminDetailsThunk.rejected, (state, action) => {
+        state.updateLoading = false;
+        state.updateError = action.payload;
+      })
+      .addCase(createSupervisorThunk.pending, (state) => {
+        state.updateLoading = true;
+        state.updateError = null;
+      })
+      .addCase(createSupervisorThunk.fulfilled, (state) => {
+        state.updateLoading = false;
+      })
+      .addCase(createSupervisorThunk.rejected, (state, action) => {
         state.updateLoading = false;
         state.updateError = action.payload;
       });

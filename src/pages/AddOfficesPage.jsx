@@ -22,7 +22,8 @@ export const AddOfficesPage = () => {
     error,
     statusUpdateLoading,
   } = useSelector((state) => state.offices);
-
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const [modalOpen, setModalOpen] = useState(false);
   const [editingOffice, setEditingOffice] = useState(null);
   const [formData, setFormData] = useState({
@@ -136,6 +137,15 @@ export const AddOfficesPage = () => {
     }
   };
 
+  const totalPages = Math.max(1, Math.ceil(allData.length / pageSize));
+
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+
+  const pageRows = allData.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+
   return (
     <section className="flex flex-col gap-4 overflow-hidden">
       <PageTitle
@@ -143,7 +153,7 @@ export const AddOfficesPage = () => {
         subtitle="View and manage office records."
       />
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap">
         <button
           type="button"
           onClick={openAddModal}
@@ -206,7 +216,7 @@ export const AddOfficesPage = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white">
-                  {allData.map((office, idx) => (
+                  {pageRows.map((office, idx) => (
                     <tr
                       key={office.id || idx}
                       className="border-b border-slate-100 hover:bg-slate-50/80 transition"
@@ -247,6 +257,43 @@ export const AddOfficesPage = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div
+              className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-3 py-2 text-sm"
+              style={{ backgroundColor: HEADER_BLUE, color: "#fff" }}
+            >
+              <span>
+                {allData.length === 0
+                  ? "No rows"
+                  : `Showing ${(currentPage - 1) * pageSize + 1}–${Math.min(
+                      currentPage * pageSize,
+                      allData.length,
+                    )} of ${allData.length}`}
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="rounded border border-white/40 px-2 py-1 text-xs disabled:opacity-40"
+                >
+                  Prev
+                </button>
+
+                <span className="text-xs">
+                  Page {currentPage} / {totalPages}
+                </span>
+
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="rounded border border-white/40 px-2 py-1 text-xs disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </>
         )}
