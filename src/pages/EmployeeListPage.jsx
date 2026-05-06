@@ -2,50 +2,88 @@ import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import PageTitle from "../components/shared/PageTitle";
 import StatusToggle from "../components/shared/StatusToggle";
-import { FiEye, FiEdit2, FiPlus } from "react-icons/fi";
+import {
+  FiEye,
+  FiEdit2,
+  FiDownload,
+  FiSearch,
+  FiX,
+  FiChevronLeft,
+  FiChevronRight,
+  FiList,
+  FiUser,
+  FiMapPin,
+  FiPhone,
+  FiCalendar,
+  FiFileText,
+  FiImage,
+  FiBriefcase,
+  FiDollarSign,
+  FiCreditCard,
+  FiHome,
+} from "react-icons/fi";
 import {
   fetchEmployeesThunk,
-  fetchRequestEmployeesThunk,
   updateEmployeeDetailsThunk,
   updateEmployeeStatusThunk,
 } from "../store/slices/employeeSlice";
 import { fetchOfficesThunk } from "../store/slices/officeSlice";
-import { createSupervisorThunk } from "../store/slices/adminSlice";
 
 const HEADER_BLUE = "#1547bd";
+const HEADER_GRADIENT = "linear-gradient(135deg, #1547bd 0%, #1e5ad1 100%)";
 
 // Essential columns only for clean UI
 const ESSENTIAL_COLUMNS = [
-  { key: "employeeid", label: "Employee ID", minW: "min-w-[100px]" },
-  { key: "name", label: "Name", minW: "min-w-[140px]" },
-  { key: "phone", label: "Phone", minW: "min-w-[110px]" },
-  { key: "employee_role", label: "Role", minW: "min-w-[100px]" },
-  { key: "officeid", label: "Office ID", minW: "min-w-[100px]" },
-  {
-    key: "multi_officeids",
-    label: "Multiple Office",
-    minW: "min-w-[140px]",
-  },
+  { key: "employeeid", label: "Employee ID", minW: "min-w-[120px]" },
+  { key: "name", label: "Name", minW: "min-w-[160px]" },
+  { key: "phone", label: "Phone", minW: "min-w-[130px]" },
+  { key: "employee_role", label: "Role", minW: "min-w-[120px]" },
+  { key: "officeid", label: "Office ID", minW: "min-w-[120px]" },
 ];
 
 // All columns for detail view
 const ALL_COLUMNS = [
-  { key: "employeeid", label: "Employee ID" },
-  { key: "name", label: "Name" },
-  { key: "phone", label: "Phone" },
-  { key: "officeid", label: "Office ID" },
-  { key: "multiple_office", label: "Multiple Office" },
-  { key: "location", label: "Location" },
-  { key: "employee_role", label: "Employee Role" },
-  { key: "aadhar_number", label: "Aadhar Number" },
-  { key: "pan_card", label: "PAN Card" },
-  { key: "driving_license_no", label: "Driving License No." },
-  { key: "rc_number", label: "RC Number" },
-  { key: "ac_name", label: "Account Name" },
-  { key: "ifsc", label: "IFSC" },
-  { key: "account_num", label: "Account Number" },
-  { key: "salary", label: "Salary" },
-  { key: "amazon_login_id", label: "Amazon Login ID" },
+  { key: "employeeid", label: "Employee ID", type: "text", icon: FiUser },
+  { key: "photo", label: "Photo", type: "image", icon: FiImage },
+  { key: "name", label: "Name", type: "text", icon: FiUser },
+  { key: "phone", label: "Phone", type: "text", icon: FiPhone },
+  { key: "officeid", label: "Office ID", type: "text", icon: FiMapPin },
+  { key: "location", label: "Location", type: "text", icon: FiMapPin },
+  { key: "employee_role", label: "Role", type: "text", icon: FiBriefcase },
+  { key: "fathers_name", label: "Father Name", type: "text", icon: FiUser },
+  { key: "dob", label: "DOB", type: "text", icon: FiCalendar },
+  { key: "address", label: "Address", type: "text", icon: FiHome },
+  { key: "district", label: "District", type: "text", icon: FiMapPin },
+  { key: "state", label: "State", type: "text", icon: FiMapPin },
+  { key: "pin_code", label: "Pincode", type: "text", icon: FiMapPin },
+  {
+    key: "aadhar_number",
+    label: "Aadhar Number",
+    type: "text",
+    icon: FiFileText,
+  },
+  { key: "pan_card", label: "PAN Card", type: "text", icon: FiFileText },
+  {
+    key: "driving_license_no",
+    label: "DL Number",
+    type: "text",
+    icon: FiFileText,
+  },
+  { key: "rc_number", label: "RC Number", type: "text", icon: FiFileText },
+  { key: "ac_name", label: "Account Name", type: "text", icon: FiUser },
+  { key: "ifsc", label: "IFSC", type: "text", icon: FiCreditCard },
+  {
+    key: "account_num",
+    label: "Account Number",
+    type: "text",
+    icon: FiCreditCard,
+  },
+  { key: "salary", label: "Salary", type: "text", icon: FiDollarSign },
+  { key: "aadhar_photo", label: "Aadhar", type: "image", icon: FiImage },
+  { key: "pan_photo", label: "PAN", type: "image", icon: FiImage },
+  { key: "rc_photo", label: "RC", type: "image", icon: FiImage },
+  { key: "dl_photo", label: "DL", type: "image", icon: FiImage },
+  { key: "passbook_photo", label: "Passbook", type: "image", icon: FiImage },
 ];
 
 function getRowKey(row, index) {
@@ -83,113 +121,50 @@ function exportCsv(rows, suffix = "employees") {
 
 function EmployeeListPage() {
   const dispatch = useDispatch();
-  const {
-    items,
-    requestItems,
-    loading,
-    requestLoading,
-    updateLoading,
-    statusUpdateLoading,
-  } = useSelector((state) => state.employees);
+  const { items, loading, statusUpdateLoading } = useSelector(
+    (state) => state.employees,
+  );
   const userType = useSelector((state) => state.auth.user?.type);
 
-  const [listMode, setListMode] = useState("directory");
   const [quickFilter, setQuickFilter] = useState("");
   const [density, setDensity] = useState("normal");
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  const [hideSupervisors, setHideSupervisors] = useState(false);
-  const [multiOfficeIds, setMultiOfficeIds] = useState([]);
 
-  //supervisor detail modal state
-  const [addModalOpen, setAddModalOpen] = useState(false);
-  const [newSupervisor, setNewSupervisor] = useState({
-    admin_name: "",
-    email: "",
-    phone: "",
-    officeid: "",
-    city: "",
-    address: "",
-    lat: "",
-    lon: "",
-    admin_password: "",
-    type: "normal",
-    position: "",
-    station_type: "",
-  });
-  const openAddSupervisorModal = () => {
-    setNewSupervisor({
-      admin_name: "",
-      officeid: "",
-      email: "",
-      phone: "",
-      city: "",
-      address: "",
-      lat: "",
-      lon: "",
-      admin_password: "",
-      type: "normal",
-      position: "",
-      station_type: "",
-    });
-
-    setAddModalOpen(true);
-  };
-
-  // Detail View Modal statsuper
+  // Detail View Modal state
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailRow, setDetailRow] = useState(null);
+  const [hoveredImage, setHoveredImage] = useState(null);
 
   const { items: officeItems } = useSelector((state) => state.offices);
   // Edit Modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
-  const [accountNum, setAccountNum] = useState("");
-  const [ifsc, setIfsc] = useState("");
-  const [salary, setSalary] = useState("");
-  const [fuel, setFuel] = useState("");
-  const [phoneCost, setPhoneCost] = useState("");
-  const [basic, setBasic] = useState("");
-  const [da, setDa] = useState("");
-  const [hra, setHra] = useState("");
+  const [editForm, setEditForm] = useState({});
+  const [files, setFiles] = useState({});
 
   const [banner, setBanner] = useState(null);
   const [modalError, setModalError] = useState(null);
+
   useEffect(() => {
-    dispatch(fetchOfficesThunk()); // ✅ ADD THIS
+    dispatch(fetchOfficesThunk());
   }, [dispatch]);
 
   useEffect(() => {
-    if (listMode === "directory") {
-      dispatch(fetchEmployeesThunk());
-    } else {
-      dispatch(fetchEmployeesThunk());
-    }
-  }, [dispatch, listMode]);
-
-  const tableRows = listMode === "directory" ? items : requestItems;
-  const tableLoading = listMode === "directory" ? loading : requestLoading;
+    dispatch(fetchEmployeesThunk());
+  }, [dispatch]);
 
   const filteredRows = useMemo(() => {
-    const q = quickFilter.trim().toLowerCase();
-
-    return tableRows
-      .filter(
-        (row) =>
-          !hideSupervisors || row.employee_role?.toLowerCase() !== "supervisor",
-      )
-      .filter((row) => {
-        if (!q) return true;
-        return Object.values(row).some((v) =>
-          String(v ?? "")
-            .toLowerCase()
-            .includes(q),
-        );
-      });
-  }, [tableRows, quickFilter, hideSupervisors]);
+    if (!quickFilter.trim()) return items;
+    const term = quickFilter.toLowerCase().trim();
+    return items.filter((emp) =>
+      Object.values(emp).some(
+        (val) => val && String(val).toLowerCase().includes(term),
+      ),
+    );
+  }, [items, quickFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
-
   const currentPage = Math.min(Math.max(1, page), totalPages);
   const pageRows = filteredRows.slice(
     (currentPage - 1) * pageSize,
@@ -199,43 +174,52 @@ function EmployeeListPage() {
   const cellPad = density === "compact" ? "px-2 py-1.5" : "px-3 py-2.5";
   const textSize = density === "compact" ? "text-xs" : "text-sm";
 
-  // Open detail view modal
   const openDetailView = (row) => {
     setDetailRow(row);
     setDetailModalOpen(true);
   };
 
-  // Open edit modal
   const openEditModal = (row) => {
     setEditRow(row);
-    setAccountNum(row.account_num ?? "");
-    setIfsc(row.ifsc ?? "");
-    setSalary(row.salary ?? "");
-    setFuel(row.fuel ?? "");
-    setPhoneCost(row.phone_cost ?? "");
-    setBasic(row.basic ?? "");
-    setDa(row.DA ?? "");
-    setHra(row.HRA ?? "");
-    setMultiOfficeIds(
-      row.multi_officeids ? String(row.multi_officeids).split(",") : [],
-    );
+    setEditForm({
+      ...row,
+      multi_officeids: row.multi_officeids
+        ? String(row.multi_officeids).split(",")
+        : [],
+    });
+    setFiles({});
     setEditModalOpen(true);
     setModalError(null);
+  };
+
+  const handleEditChange = (key, value) => {
+    setEditForm((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const handleFileChange = (key, file) => {
+    setFiles((prev) => ({
+      ...prev,
+      [key]: file,
+    }));
   };
 
   const closeDetailModal = () => {
     setDetailModalOpen(false);
     setDetailRow(null);
+    setHoveredImage(null);
   };
 
   const closeEditModal = () => {
     setEditModalOpen(false);
     setEditRow(null);
+    setFiles({});
   };
 
-  // Handle employee status update with API call
   const handleStatusToggle = async (employee) => {
-    const employeeid = employee.employeeid; // use employeeid (NOT id)
+    const employeeid = employee.employeeid;
     const currentStatus = employee.status == 1 ? 1 : 0;
     const newStatus = currentStatus === 1 ? 0 : 1;
 
@@ -252,221 +236,165 @@ function EmployeeListPage() {
         text: `Employee status updated successfully`,
       });
 
-      // refresh list
-      if (listMode === "directory") {
-        dispatch(fetchEmployeesThunk());
-      } else {
-        dispatch(fetchRequestEmployeesThunk());
-      }
+      setTimeout(() => setBanner(null), 3000);
+
+      dispatch(fetchEmployeesThunk());
     } catch (err) {
       setBanner({
         type: "error",
         text: err || "Failed to update status",
       });
+      setTimeout(() => setBanner(null), 3000);
     }
   };
 
   const handleUpdate = async () => {
-    if (!editRow) return;
-    setModalError(null);
-    const payload = {
-      employeeid: editRow.employeeid,
-      account_num: accountNum,
-      ifsc,
-      salary,
-      fuel,
-      phone_cost: phoneCost,
-      basic,
-      DA: da,
-      HRA: hra,
-      multi_officeids: multiOfficeIds, // ✅ ADD THIS
-    };
-    try {
-      const result = await dispatch(
-        updateEmployeeDetailsThunk(payload),
-      ).unwrap();
-      if (listMode === "directory") {
-        await dispatch(fetchEmployeesThunk());
-      } else {
-        await dispatch(fetchRequestEmployeesThunk());
+    const formData = new FormData();
+
+    formData.append("employeeid", editForm.employeeid);
+
+    Object.keys(editForm).forEach((key) => {
+      if (key !== "photo" && key !== "multi_officeids") {
+        formData.append(key, editForm[key]);
       }
-      closeEditModal();
+    });
+
+    if (editForm.multi_officeids && Array.isArray(editForm.multi_officeids)) {
+      formData.append("multi_officeids", editForm.multi_officeids.join(","));
+    }
+
+    Object.keys(files).forEach((key) => {
+      if (files[key]) {
+        formData.append(key, files[key]);
+      }
+    });
+
+    try {
+      await dispatch(updateEmployeeDetailsThunk(formData)).unwrap();
+
       setBanner({
         type: "success",
-        text: result.message || "Updated successfully.",
+        text: "Employee updated successfully",
       });
+
+      setTimeout(() => setBanner(null), 3000);
+
+      dispatch(fetchEmployeesThunk());
+      closeEditModal();
     } catch (err) {
-      setModalError(err || "Failed to update employee details.");
+      setModalError(err);
     }
   };
 
-  const handleAddSupervisor = async () => {
-    try {
-      await dispatch(createSupervisorThunk(newSupervisor)).unwrap();
-
-      setBanner({ type: "success", text: "Supervisor added" });
-      setAddModalOpen(false);
-
-      dispatch(fetchEmployeesThunk());
-    } catch (err) {
-      setBanner({ type: "error", text: err });
-    }
+  const getFullImageUrl = (path) => {
+    if (!path || path === "None") return null;
+    if (path.startsWith("http")) return path;
+    return `https://namami-infotech.com/MMSalary/uploads/${path}`;
   };
 
   return (
-    <section className="flex flex-col gap-4 overflow-hidden">
+    <section className="flex flex-col overflow-hidden">
       <PageTitle
         title="Manage Employees"
-        subtitle={
-          listMode === "directory"
-            ? hideSupervisors
-              ? "Showing only non-supervisor employees for adding supervisor."
-              : "Full directory (get_all / by office). Search, filter, view details, edit."
-            : "Request queue (getall_req_employee / Register by office). View and manage requests."
-        }
+        subtitle="Full directory management. Search, filter, view details, and edit employee information."
       />
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            setListMode("directory");
-            setPage(1);
-            setQuickFilter("");
-            setHideSupervisors(false);
-            dispatch(fetchEmployeesThunk());
-          }}
-          className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-            !hideSupervisors
-              ? "text-white shadow"
-              : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-          }`}
-          style={
-            !hideSupervisors ? { backgroundColor: HEADER_BLUE } : undefined
-          }
-        >
-          All Employees
-        </button>
-        {/* only super admin can see the requests tab and add supervisor button */}
-        {userType === "super" && (
-          <>
-            <button
-              type="button"
-              onClick={() => {
-                setListMode("directory");
-                setHideSupervisors(true);
-                setPage(1);
-                setQuickFilter("");
-                dispatch(fetchEmployeesThunk());
-              }}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                hideSupervisors
-                  ? "text-white shadow"
-                  : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-              }`}
-              style={
-                hideSupervisors ? { backgroundColor: HEADER_BLUE } : undefined
-              }
-            >
-              Add Supervisor
-            </button>
-          </>
-        )}
-      </div>
-
-      {banner && !editModalOpen && !detailModalOpen ? (
+      {/* Banner Alert */}
+      {banner && !editModalOpen && !detailModalOpen && (
         <div
-          className={`rounded-lg px-4 py-2 text-sm ${
+          className={`rounded-xl px-5 py-3 text-sm font-medium shadow-lg transform transition-all duration-300 ${
             banner.type === "success"
-              ? "bg-emerald-50 text-emerald-800"
-              : "bg-rose-50 text-rose-800"
+              ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white"
+              : "bg-gradient-to-r from-rose-500 to-red-500 text-white"
           }`}
         >
-          {banner.text}
+          <div className="flex items-center gap-2">
+            {banner.type === "success" ? "✓" : "⚠"}
+            {banner.text}
+          </div>
         </div>
-      ) : null}
+      )}
 
+      {/* Main Card */}
       <div
-        className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
-        style={{ minHeight: "70vh" }}
+        className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-xl border border-slate-200"
+        style={{ minHeight: "100vh" }}
       >
-        <div
-          className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-3 py-2"
-          style={{ color: HEADER_BLUE }}
-        >
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-            Toolbar
-          </span>
-          {/* <button
-              type="button"
-              className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium hover:bg-slate-50"
-              style={{ color: HEADER_BLUE }}
-              onClick={() => {
-                setQuickFilter("");
-                setPage(1);
-              }}
-            >
-              Clear filter
-            </button>
-            <button
-              type="button"
-              className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium hover:bg-slate-50"
-              style={{ color: HEADER_BLUE }}
-              onClick={() =>
-                setDensity((d) => (d === "normal" ? "compact" : "normal"))
-              }
-            >
-              Density: {density === "normal" ? "Standard" : "Compact"}
-            </button> */}
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-5 py-3 bg-white">
           <button
             type="button"
-            className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium hover:bg-slate-50"
-            style={{ color: HEADER_BLUE }}
-            onClick={() =>
-              exportCsv(
-                filteredRows,
-                listMode === "directory" ? "employees" : "request-employees",
-              )
-            }
+            onClick={() => {
+              setQuickFilter("");
+              setPage(1);
+            }}
+            className="px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-2 bg-gradient-to-r from-[#1547bd] to-[#1e5ad1] text-white shadow-md"
           >
+            <FiList size={16} />
+            All Employees
+          </button>
+
+          <div className="flex-1" />
+
+          <button
+            type="button"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 transition-all duration-200 flex items-center gap-2"
+            style={{ color: HEADER_BLUE }}
+            onClick={() => exportCsv(filteredRows, "employees")}
+          >
+            <FiDownload size={16} />
             Export CSV
           </button>
 
-          <div className="ml-auto flex min-w-[200px] max-w-md flex-1 items-center gap-2">
-            <label htmlFor="emp-quick-filter" className="sr-only">
-              Quick filter
-            </label>
+          <div className="relative">
+            <FiSearch
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
+              size={16}
+            />
             <input
-              id="emp-quick-filter"
               type="search"
-              placeholder="Search table…"
+              placeholder="Search employees..."
               value={quickFilter}
               onChange={(e) => {
                 setQuickFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-[#1547bd]"
+              className="w-80 rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm outline-none focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all"
             />
           </div>
         </div>
 
-        {tableLoading ? (
-          <div className="flex items-center justify-center p-8">
-            <p className="text-sm text-slate-500">Loading employees…</p>
+        {/* Table */}
+        {loading ? (
+          <div className="flex items-center justify-center p-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1547bd] mx-auto mb-4"></div>
+              <p className="text-sm text-slate-500">Loading employees...</p>
+            </div>
           </div>
         ) : pageRows.length === 0 ? (
-          <div className="flex items-center justify-center p-8">
-            <p className="text-sm text-slate-500">No employees found.</p>
+          <div className="flex items-center justify-center p-12">
+            <div className="text-center">
+              <FiUser size={48} className="mx-auto text-slate-300 mb-3" />
+              <p className="text-sm text-slate-500">No employees found.</p>
+              {quickFilter && (
+                <button
+                  onClick={() => setQuickFilter("")}
+                  className="mt-2 text-sm text-[#1547bd] hover:underline"
+                >
+                  Clear search
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <>
             <div className="flex-1 overflow-x-auto overflow-y-auto">
               <table className={`w-full border-collapse ${textSize}`}>
                 <thead className="sticky top-0 z-[1] shadow-sm">
-                  <tr style={{ backgroundColor: HEADER_BLUE, color: "#fff" }}>
+                  <tr style={{ background: HEADER_GRADIENT, color: "#fff" }}>
                     <th
                       className={`${cellPad} text-left font-semibold whitespace-nowrap border-b border-white/20 w-12`}
-                      title="View employee details"
                     >
                       View
                     </th>
@@ -479,13 +407,12 @@ function EmployeeListPage() {
                       </th>
                     ))}
                     <th
-                      className={`${cellPad} text-left font-semibold whitespace-nowrap border-b border-white/20 w-16`}
-                      title="Toggle active/inactive status"
+                      className={`${cellPad} text-left font-semibold whitespace-nowrap border-b border-white/20 w-24`}
                     >
                       Status
                     </th>
                     <th
-                      className={`${cellPad} text-left font-semibold whitespace-nowrap border-b border-white/20 min-w-[100px]`}
+                      className={`${cellPad} text-left font-semibold whitespace-nowrap border-b border-white/20 w-24`}
                     >
                       Action
                     </th>
@@ -500,40 +427,48 @@ function EmployeeListPage() {
                     return (
                       <tr
                         key={`${rk}-${globalIndex}`}
-                        className={`border-b border-slate-100 transition ${
+                        className={`border-b border-slate-100 transition-all duration-150 ${
                           isActive
-                            ? "hover:bg-slate-50/80"
+                            ? "hover:bg-slate-50"
                             : "bg-slate-50/40 hover:bg-slate-50/60"
                         }`}
                       >
-                        {/* View Icon Button */}
                         <td
                           className={`${cellPad} text-center whitespace-nowrap`}
                         >
                           <button
-                            type="button"
                             onClick={() => openDetailView(row)}
-                            className="rounded-md p-1.5 text-sm transition hover:bg-blue-100"
+                            className="rounded-lg p-2 text-sm transition-all duration-200 hover:bg-blue-100 hover:scale-105"
                             style={{ color: HEADER_BLUE }}
                             title="View employee details"
                           >
                             <FiEye size={18} />
                           </button>
                         </td>
-                        {/* Essential Columns */}
                         {ESSENTIAL_COLUMNS.map((col) => (
                           <td
                             key={col.key}
-                            className={`${cellPad} text-slate-800 whitespace-nowrap max-w-[220px] truncate`}
+                            className={`${cellPad} text-slate-700 whitespace-nowrap max-w-[220px] truncate`}
                             title={cellValue(row, col.key)}
                           >
-                            {cellValue(row, col.key)}
+                            {col.key === "name" ? (
+                              <div className="flex items-center gap-2">
+                                {row.photo && (
+                                  <img
+                                    src={getFullImageUrl(row.photo)}
+                                    className="w-7 h-7 rounded-full object-cover"
+                                  />
+                                )}
+                                <span className="font-medium">
+                                  {cellValue(row, col.key)}
+                                </span>
+                              </div>
+                            ) : (
+                              cellValue(row, col.key)
+                            )}
                           </td>
                         ))}
-                        {/* Status Toggle Slide Button */}
-                        <td
-                          className={`${cellPad} text-center whitespace-nowrap`}
-                        >
+                        <td className={`${cellPad} whitespace-nowrap`}>
                           <StatusToggle
                             isActive={isActive}
                             onToggle={() => handleStatusToggle(row)}
@@ -541,29 +476,15 @@ function EmployeeListPage() {
                             loading={statusUpdateLoading}
                           />
                         </td>
-                        {/* Action Button */}
                         <td className={`${cellPad} whitespace-nowrap`}>
-                          {hideSupervisors ? (
-                            <button
-                              type="button"
-                              onClick={openAddSupervisorModal}
-                              className="rounded-md p-1.5 text-sm transition hover:bg-blue-100"
-                              style={{ color: HEADER_BLUE }}
-                              title="Add Action"
-                            >
-                              <FiPlus size={18} />
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(row)}
-                              className="rounded-md p-1.5 text-sm transition hover:bg-blue-100"
-                              style={{ color: HEADER_BLUE }}
-                              title="Edit employee details"
-                            >
-                              <FiEdit2 size={18} />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => openEditModal(row)}
+                            className="rounded-lg p-2 text-sm transition-all duration-200 hover:bg-blue-100 hover:scale-105"
+                            style={{ color: HEADER_BLUE }}
+                            title="Edit employee details"
+                          >
+                            <FiEdit2 size={18} />
+                          </button>
                         </td>
                       </tr>
                     );
@@ -572,47 +493,35 @@ function EmployeeListPage() {
               </table>
             </div>
 
-            <div
-              className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-3 py-2 text-sm"
-              style={{ backgroundColor: HEADER_BLUE, color: "#fff" }}
-            >
-              <span>
+            {/* Pagination */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 bg-white">
+              <span className="text-sm text-slate-600">
                 {filteredRows.length === 0
                   ? "No rows"
                   : `Showing ${(currentPage - 1) * pageSize + 1}–${Math.min(
                       currentPage * pageSize,
                       filteredRows.length,
-                    )} of ${filteredRows.length}`}
+                    )} of ${filteredRows.length} employees`}
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <button
-                  type="button"
                   disabled={currentPage <= 1}
-                  onClick={() =>
-                    setPage((p) => {
-                      const c = Math.min(Math.max(1, p), totalPages);
-                      return Math.max(1, c - 1);
-                    })
-                  }
-                  className="rounded border border-white/40 px-2 py-1 text-xs disabled:opacity-40"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-all duration-200"
                 >
+                  <FiChevronLeft size={16} />
                   Prev
                 </button>
-                <span className="text-xs">
-                  Page {currentPage} / {totalPages}
+                <span className="text-sm font-medium text-slate-700">
+                  Page {currentPage} of {totalPages}
                 </span>
                 <button
-                  type="button"
                   disabled={currentPage >= totalPages}
-                  onClick={() =>
-                    setPage((p) => {
-                      const c = Math.min(Math.max(1, p), totalPages);
-                      return Math.min(totalPages, c + 1);
-                    })
-                  }
-                  className="rounded border border-white/40 px-2 py-1 text-xs disabled:opacity-40"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-all duration-200"
                 >
                   Next
+                  <FiChevronRight size={16} />
                 </button>
               </div>
             </div>
@@ -620,408 +529,674 @@ function EmployeeListPage() {
         )}
       </div>
 
-      {detailModalOpen && detailRow ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="detail-employee-title"
-        >
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2
-                id="detail-employee-title"
-                className="text-lg font-semibold text-slate-900"
-              >
-                Employee Details: {detailRow?.name || "N/A"} (
-                {detailRow?.employeeid || "N/A"})
-              </h2>
-              <button
-                type="button"
-                onClick={closeDetailModal}
-                className="text-lg text-slate-400 hover:text-slate-600"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Details Grid */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {ALL_COLUMNS.map((col) => (
-                <div key={col.key} className="block text-sm">
-                  <span className="mb-1 block font-medium text-slate-700">
-                    {col.label}
-                  </span>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700">
-                    {cellValue(detailRow, col.key)}
+      {/* Detail Modal */}
+      {detailModalOpen && detailRow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
+            <div className="relative bg-gradient-to-r from-[#1547bd] to-[#1e5ad1] text-white p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-5">
+                  {detailRow?.photo && (
+                    <img
+                      src={getFullImageUrl(detailRow.photo)}
+                      className="h-20 w-20 rounded-full object-cover border-4 border-white shadow-lg"
+                      alt={detailRow.name}
+                    />
+                  )}
+                  <div>
+                    <h2 className="text-2xl font-bold">{detailRow?.name}</h2>
+                    <p className="text-blue-100 mt-1">
+                      {detailRow?.employeeid}
+                    </p>
                   </div>
                 </div>
-              ))}
+                <button
+                  onClick={closeDetailModal}
+                  className="text-white/80 hover:text-white p-2 rounded-lg hover:bg-white/20 transition-all duration-200"
+                >
+                  <FiX size={24} />
+                </button>
+              </div>
             </div>
 
-            <div className="mt-6 flex flex-wrap justify-end gap-3">
-              <button
-                type="button"
-                onClick={closeDetailModal}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  closeDetailModal();
-                  openEditModal(detailRow);
-                }}
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-                style={{ backgroundColor: HEADER_BLUE }}
-              >
-                Edit Employee
-              </button>
+            <div className="overflow-y-auto p-6 bg-white">
+              {/* Personal Information Section */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                  <div className="w-1 h-6 bg-gradient-to-b from-[#1547bd] to-[#1e5ad1] rounded-full"></div>
+                  Personal Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {ALL_COLUMNS.filter(
+                    (col) =>
+                      col.type === "text" &&
+                      [
+                        "name",
+                        "phone",
+                        "officeid",
+                        "location",
+                        "employee_role",
+                        "fathers_name",
+                        "dob",
+                        "address",
+                        "district",
+                        "state",
+                        "pin_code",
+                      ].includes(col.key),
+                  ).map((col) => {
+                    const Icon = col.icon;
+                    return (
+                      <div
+                        key={col.key}
+                        className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:shadow-md transition-all duration-200"
+                      >
+                        <div className="flex items-center gap-2 text-slate-500 mb-2">
+                          {Icon && <Icon size={14} />}
+                          <p className="text-xs font-medium uppercase tracking-wide">
+                            {col.label}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold text-slate-800">
+                          {col.key === "salary"
+                            ? `₹${detailRow?.[col.key] || "—"}`
+                            : detailRow?.[col.key] || "—"}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Employment Information */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                  <div className="w-1 h-6 bg-gradient-to-b from-[#1547bd] to-[#1e5ad1] rounded-full"></div>
+                  Employment Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {ALL_COLUMNS.filter(
+                    (col) =>
+                      col.type === "text" &&
+                      [
+                        // "salary",
+                        ...(userType === "super" ? ["salary"] : []),
+                        "aadhar_number",
+                        "pan_card",
+                        "driving_license_no",
+                        "rc_number",
+                        "ac_name",
+                        "account_num",
+                        "ifsc",
+                      ].includes(col.key),
+                  ).map((col) => {
+                    const Icon = col.icon;
+                    return (
+                      <div
+                        key={col.key}
+                        className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:shadow-md transition-all duration-200"
+                      >
+                        <div className="flex items-center gap-2 text-slate-500 mb-2">
+                          {Icon && <Icon size={14} />}
+                          <p className="text-xs font-medium uppercase tracking-wide">
+                            {col.label}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold text-slate-800">
+                          {col.key === "salary"
+                            ? `₹${detailRow?.[col.key] || "—"}`
+                            : detailRow?.[col.key] || "—"}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Documents Section */}
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                  <div className="w-1 h-6 bg-gradient-to-b from-[#1547bd] to-[#1e5ad1] rounded-full"></div>
+                  Documents
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {ALL_COLUMNS.filter((col) => col.type === "image").map(
+                    (col) => {
+                      const imageUrl = getFullImageUrl(detailRow?.[col.key]);
+                      return (
+                        <div
+                          key={col.key}
+                          className="bg-white rounded-xl p-3 shadow-sm border border-slate-200 text-center relative"
+                          onMouseEnter={() => setHoveredImage(col.key)}
+                          onMouseLeave={() => setHoveredImage(null)}
+                        >
+                          <p className="text-xs font-medium text-slate-600 mb-2">
+                            {col.label}
+                          </p>
+                          {imageUrl ? (
+                            <div className="relative group cursor-pointer overflow-hidden rounded-lg">
+                              <img
+                                src={imageUrl}
+                                alt={col.label}
+                                className="h-32 w-full object-cover rounded-lg transition-transform duration-300"
+                              />
+                              {hoveredImage === col.key && (
+                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-lg">
+                                  <img
+                                    src={imageUrl}
+                                    alt={col.label}
+                                    className="max-w-full max-h-full object-contain p-2"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="h-32 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
+                              <p className="text-xs text-slate-400">
+                                No Document
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    },
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      ) : null}
+      )}
 
-      {editModalOpen && editRow ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="edit-employee-title"
-        >
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2
-                id="edit-employee-title"
-                className="text-lg font-semibold text-slate-900"
-              >
-                Edit Employee: {editRow?.name || "N/A"} (
-                {editRow?.employeeid || "N/A"})
-              </h2>
-              <button
-                type="button"
-                onClick={closeEditModal}
-                className="text-lg text-slate-400 hover:text-slate-600"
-              >
-                ✕
-              </button>
+      {/* Edit Modal with Blue Theme */}
+      {editModalOpen && editRow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white rounded-2xl shadow-2xl flex flex-col">
+            <div className="bg-gradient-to-r from-[#1547bd] to-[#1e5ad1] text-white p-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold">Edit Employee</h2>
+                  <p className="text-blue-100 text-sm mt-1">
+                    {editRow?.name} • {editRow?.employeeid}
+                  </p>
+                </div>
+                <button
+                  onClick={closeEditModal}
+                  className="text-white/80 hover:text-white p-2 rounded-lg hover:bg-white/20 transition-all duration-200"
+                >
+                  <FiX size={22} />
+                </button>
+              </div>
             </div>
 
-            {modalError ? (
-              <p className="mb-3 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-800">
+            {modalError && (
+              <div className="mx-4 mt-3 p-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
                 {modalError}
-              </p>
-            ) : null}
+              </div>
+            )}
 
-            {/* Read-only Fields */}
-            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-700">
-                  Name
-                </span>
-                <input
-                  readOnly
-                  value={editRow.name ?? ""}
-                  className="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-slate-700"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-700">
-                  Employee ID
-                </span>
-                <input
-                  readOnly
-                  value={editRow.employeeid ?? ""}
-                  className="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-slate-700"
-                />
-              </label>
-            </div>
+            <div className="overflow-y-auto p-5 bg-white">
+              {/* Two Column Layout for Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Left Column */}
+                <div className="space-y-4">
+                  {/* Employee ID - Read Only */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Employee ID
+                    </label>
+                    <input
+                      disabled
+                      value={editForm?.employeeid || ""}
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 bg-slate-50 text-slate-500 text-sm"
+                    />
+                  </div>
 
-            <hr className="mb-4 border-slate-200" />
+                  {/* Name */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.name || ""}
+                      onChange={(e) => handleEditChange("name", e.target.value)}
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
 
-            {/* Editable Fields */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-700">
-                  Account Number
-                </span>
-                <input
-                  value={accountNum}
-                  onChange={(e) => setAccountNum(e.target.value)}
-                  className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-700">
-                  IFSC
-                </span>
-                <input
-                  value={ifsc}
-                  onChange={(e) => setIfsc(e.target.value)}
-                  className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-700">
-                  Salary
-                </span>
-                <input
-                  type="number"
-                  value={salary}
-                  onChange={(e) => setSalary(e.target.value)}
-                  className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-700">
-                  Fuel
-                </span>
-                <input
-                  type="number"
-                  value={fuel}
-                  onChange={(e) => setFuel(e.target.value)}
-                  className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-700">
-                  Phone Cost
-                </span>
-                <input
-                  type="number"
-                  value={phoneCost}
-                  onChange={(e) => setPhoneCost(e.target.value)}
-                  className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-700">
-                  Basic
-                </span>
-                <input
-                  type="number"
-                  value={basic}
-                  onChange={(e) => setBasic(e.target.value)}
-                  className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-700">
-                  DA
-                </span>
-                <input
-                  type="number"
-                  value={da}
-                  onChange={(e) => setDa(e.target.value)}
-                  className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-700">
-                  HRA
-                </span>
-                <input
-                  type="number"
-                  value={hra}
-                  onChange={(e) => setHra(e.target.value)}
-                  className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
-                />
-              </label>
-              <label className="">
-                <span className="mb-2 block font-medium text-slate-700">
-                  Multi Office IDs
-                </span>
-                {/* this was the multi office IDs */}
-                <div className="grid max-h-40 grid-cols-2 gap-2 overflow-y-auto rounded-lg border border-slate-300 p-2">
+                  {/* Phone */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Phone Number
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.phone || ""}
+                      onChange={(e) =>
+                        handleEditChange("phone", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+
+                  {/* Role */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Role
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.employee_role || ""}
+                      onChange={(e) =>
+                        handleEditChange("employee_role", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+
+                  {/* Father's Name */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Father's Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.fathers_name || ""}
+                      onChange={(e) =>
+                        handleEditChange("fathers_name", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+
+                  {/* DOB */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Date of Birth
+                    </label>
+                    <input
+                      type="date"
+                      value={editForm?.dob || ""}
+                      onChange={(e) => handleEditChange("dob", e.target.value)}
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-4">
+                  {/* Primary Office ID */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Primary Office
+                    </label>
+                    <select
+                      value={editForm?.officeid || ""}
+                      onChange={(e) =>
+                        handleEditChange("officeid", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    >
+                      <option value="">Select Primary Office</option>
+                      {(officeItems || []).map((office) => (
+                        <option key={office} value={office}>
+                          {office}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Location */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Location
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.location || ""}
+                      onChange={(e) =>
+                        handleEditChange("location", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+
+                  {/* Address */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Address
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.address || ""}
+                      onChange={(e) =>
+                        handleEditChange("address", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+
+                  {/* District */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      District
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.district || ""}
+                      onChange={(e) =>
+                        handleEditChange("district", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+
+                  {/* State */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      State
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.state || ""}
+                      onChange={(e) =>
+                        handleEditChange("state", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+
+                  {/* Pin Code */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Pin Code
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.pin_code || ""}
+                      onChange={(e) =>
+                        handleEditChange("pin_code", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Multiple Office Access - Full Width */}
+              <div className="mt-5">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">
+                  Multiple Office Access
+                </label>
+
+                {/* 1. Selected Chips Section - Sabhi selected offices dikhayega */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {(editForm?.multi_officeids || []).map((office) => {
+                    const isPrimary =
+                      String(editForm?.officeid) === String(office);
+
+                    return (
+                      <div
+                        key={office}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          isPrimary
+                            ? "bg-gradient-to-r from-[#1547bd] to-[#1e5ad1] text-white shadow-sm"
+                            : "bg-[#1547bd]/10 text-[#1547bd] border border-[#1547bd]/20"
+                        }`}
+                      >
+                        <span className="whitespace-nowrap">
+                          {office} {isPrimary && "(Primary)"}
+                        </span>
+
+                        {/* Sirf Non-Primary ko delete karne ka option */}
+                        {!isPrimary && (
+                          <button
+                            type="button"
+                            className="ml-1 hover:text-red-600 text-[#1547bd] font-bold transition-colors"
+                            onClick={() => {
+                              const updated = (
+                                editForm?.multi_officeids || []
+                              ).filter((id) => String(id) !== String(office));
+                              handleEditChange("multi_officeids", updated);
+                            }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* 2. Checkbox List */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-3 border border-slate-200 rounded-lg bg-white">
                   {(officeItems || []).map((office) => {
-                    const isChecked = multiOfficeIds.includes(String(office));
+                    const selectedOffices = editForm?.multi_officeids || [];
+                    const isPrimaryOffice =
+                      String(editForm?.officeid) === String(office);
+
+                    // Checkbox tabhi tick hoga jab wo array mein ho YA primary ho
+                    const isChecked =
+                      selectedOffices.some(
+                        (id) => String(id) === String(office),
+                      ) || isPrimaryOffice;
 
                     return (
                       <label
                         key={office}
-                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-slate-100"
+                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                          isPrimaryOffice
+                            ? "bg-gradient-to-r from-[#1547bd]/10 to-[#1e5ad1]/10 border border-[#1547bd]/30"
+                            : "hover:bg-[#1547bd]/5 border border-transparent"
+                        }`}
                       >
                         <input
                           type="checkbox"
                           checked={isChecked}
+                          disabled={isPrimaryOffice}
                           onChange={(e) => {
+                            let updated = [...selectedOffices].map((id) =>
+                              String(id),
+                            ); // String conversion for safety
+                            const officeStr = String(office);
+
                             if (e.target.checked) {
-                              setMultiOfficeIds((prev) => [
-                                ...prev,
-                                String(office),
-                              ]);
+                              if (!updated.includes(officeStr)) {
+                                updated.push(officeStr);
+                              }
                             } else {
-                              setMultiOfficeIds((prev) =>
-                                prev.filter((id) => id !== String(office)),
+                              updated = updated.filter(
+                                (id) => id !== officeStr,
                               );
                             }
+                            handleEditChange("multi_officeids", updated);
                           }}
+                          className="w-4 h-4 rounded border-slate-300 text-[#1547bd] focus:ring-[#1547bd] focus:ring-2"
                         />
-
-                        <span className="text-xs text-slate-700">{office}</span>
+                        <span
+                          className={`text-sm ${isPrimaryOffice ? "font-semibold text-[#1547bd]" : "text-slate-700"}`}
+                        >
+                          {office}
+                          {isPrimaryOffice && " (Primary)"}
+                        </span>
                       </label>
                     );
                   })}
                 </div>
-              </label>
+
+                <p className="text-xs text-slate-500 mt-2">
+                  ✅ Primary office ({editForm?.officeid}) is automatically
+                  included.
+                </p>
+              </div>
+
+              {/* Financial Information - Two Columns */}
+              <div className="mt-5">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3 pb-2 border-b border-slate-200">
+                  Financial Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Salary
+                    </label>
+                    <input
+                      type="number"
+                      value={editForm?.salary || ""}
+                      onChange={(e) =>
+                        handleEditChange("salary", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Account Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.ac_name || ""}
+                      onChange={(e) =>
+                        handleEditChange("ac_name", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      IFSC Code
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.ifsc || ""}
+                      onChange={(e) => handleEditChange("ifsc", e.target.value)}
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Account Number
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.account_num || ""}
+                      onChange={(e) =>
+                        handleEditChange("account_num", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Document Numbers - Two Columns */}
+              <div className="mt-5">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3 pb-2 border-b border-slate-200">
+                  Document Numbers
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Aadhar Number
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.aadhar_number || ""}
+                      onChange={(e) =>
+                        handleEditChange("aadhar_number", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      PAN Card
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.pan_card || ""}
+                      onChange={(e) =>
+                        handleEditChange("pan_card", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Driving License
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.driving_license_no || ""}
+                      onChange={(e) =>
+                        handleEditChange("driving_license_no", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      RC Number
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm?.rc_number || ""}
+                      onChange={(e) =>
+                        handleEditChange("rc_number", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Document Upload - Simplified */}
+              <div className="mt-5">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3 pb-2 border-b border-slate-200">
+                  Document Uploads (Optional)
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {ALL_COLUMNS.filter((col) => col.type === "image").map(
+                    (col) => (
+                      <div
+                        key={col.key}
+                        className="bg-slate-50 rounded-lg p-2 border border-slate-200"
+                      >
+                        <label className="text-xs font-medium text-slate-600 block mb-1">
+                          {col.label}
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handleFileChange(col.key, e.target.files[0])
+                          }
+                          className="w-full text-xs text-slate-500 file:mr-1 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#1547bd] hover:file:bg-blue-100"
+                        />
+                        {files[col.key] && (
+                          <p className="text-xs text-green-600 mt-1">
+                            ✓ Selected
+                          </p>
+                        )}
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="mt-6 flex flex-wrap justify-end gap-3">
+            <div className="flex justify-end gap-3 p-4 border-t border-slate-200 bg-white">
               <button
-                type="button"
                 onClick={closeEditModal}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 transition-all duration-200 text-sm"
               >
                 Cancel
               </button>
               <button
-                type="button"
-                disabled={updateLoading}
                 onClick={handleUpdate}
-                className="rounded-lg px-5 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:opacity-90"
-                style={{ backgroundColor: HEADER_BLUE }}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#1547bd] to-[#1e5ad1] text-white font-medium hover:shadow-lg transition-all duration-200 text-sm"
               >
-                {updateLoading ? "Updating…" : "Update"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {addModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white p-6 rounded-xl w-full max-w-lg">
-            <h2 className="text-lg font-semibold mb-4">Add Supervisor</h2>
-
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                placeholder="Name"
-                value={newSupervisor.admin_name}
-                onChange={(e) =>
-                  setNewSupervisor({
-                    ...newSupervisor,
-                    admin_name: e.target.value,
-                  })
-                }
-              />
-
-              <input
-                placeholder="Email"
-                value={newSupervisor.email}
-                onChange={(e) =>
-                  setNewSupervisor({ ...newSupervisor, email: e.target.value })
-                }
-              />
-
-              <input
-                placeholder="Phone"
-                value={newSupervisor.phone}
-                onChange={(e) =>
-                  setNewSupervisor({ ...newSupervisor, phone: e.target.value })
-                }
-              />
-
-              <input
-                placeholder="Office ID"
-                value={newSupervisor.officeid}
-                onChange={(e) =>
-                  setNewSupervisor({
-                    ...newSupervisor,
-                    officeid: e.target.value,
-                  })
-                }
-              />
-
-              <input
-                placeholder="City"
-                value={newSupervisor.city}
-                onChange={(e) =>
-                  setNewSupervisor({ ...newSupervisor, city: e.target.value })
-                }
-              />
-
-              <input
-                placeholder="Address"
-                value={newSupervisor.address}
-                onChange={(e) =>
-                  setNewSupervisor({
-                    ...newSupervisor,
-                    address: e.target.value,
-                  })
-                }
-              />
-
-              <input
-                placeholder="Lat"
-                value={newSupervisor.lat}
-                onChange={(e) =>
-                  setNewSupervisor({ ...newSupervisor, lat: e.target.value })
-                }
-              />
-
-              <input
-                placeholder="Lon"
-                value={newSupervisor.lon}
-                onChange={(e) =>
-                  setNewSupervisor({ ...newSupervisor, lon: e.target.value })
-                }
-              />
-
-              <input
-                placeholder="Password"
-                type="password"
-                value={newSupervisor.admin_password}
-                onChange={(e) =>
-                  setNewSupervisor({
-                    ...newSupervisor,
-                    admin_password: e.target.value,
-                  })
-                }
-              />
-
-              {/* TYPE DROPDOWN */}
-              <select
-                value={newSupervisor.type}
-                onChange={(e) =>
-                  setNewSupervisor({ ...newSupervisor, type: e.target.value })
-                }
-              >
-                <option value="normal">normal</option>
-                <option value="super">super</option>
-              </select>
-
-              <input
-                placeholder="Position"
-                value={newSupervisor.position}
-                onChange={(e) =>
-                  setNewSupervisor({
-                    ...newSupervisor,
-                    position: e.target.value,
-                  })
-                }
-              />
-
-              <input
-                placeholder="Station Type"
-                value={newSupervisor.station_type}
-                onChange={(e) =>
-                  setNewSupervisor({
-                    ...newSupervisor,
-                    station_type: e.target.value,
-                  })
-                }
-              />
-            </div>
-
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => setAddModalOpen(false)}>Cancel</button>
-
-              <button
-                className="bg-blue-600 text-white px-4 py-2 rounded"
-                onClick={handleAddSupervisor}
-              >
-                Save
+                Save Changes
               </button>
             </div>
           </div>

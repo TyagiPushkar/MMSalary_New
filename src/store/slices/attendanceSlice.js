@@ -27,7 +27,7 @@ export const fetchAttendanceByDateThunk = createAsyncThunk(
         user,
         date,
       });
-      console.log("pardeeep", date, ":", result.data);
+      // console.log("pardeeep bhai", date, ":", result.data);
       return result.data || [];
     } catch (error) {
       return thunkApi.rejectWithValue(error.message);

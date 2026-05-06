@@ -43,6 +43,7 @@ export const attendanceService = {
     }
 
     const response = await axiosInstance.get(url, config);
+    // console.log("All employees attendance data:", response.data);
     return response.data?.data ?? [];
   },
 
@@ -75,7 +76,7 @@ export const attendanceService = {
 
       const results = await Promise.all(promises);
       const mergedData = results.flat();
-      console.log("Merged attendance data:", mergedData);
+      // console.log("Merged attendance data:", mergedData);
       return {
         data: mergedData,
       };

@@ -6,6 +6,7 @@ export const fetchEmployeesThunk = createAsyncThunk(
   async (_, thunkApi) => {
     const { token, user } = thunkApi.getState().auth;
     const response = await employeeService.getEmployees({ token, user });
+    console.log("Fetched employees:", response.data);
     return response.data;
   },
 );
@@ -21,12 +22,12 @@ export const fetchRequestEmployeesThunk = createAsyncThunk(
 
 export const addEmployeeThunk = createAsyncThunk(
   "employees/add",
-  async ({ payload, token,user}, thunkApi) => {
+  async ({ payload, token, user }, thunkApi) => {
     // console.log("Adding employee with payload:", payload);
     const response = await employeeService.addRequestEmployees({
       payload,
       token,
-      user
+      user,
     });
     if (!response.success) {
       return thunkApi.rejectWithValue(response.message);

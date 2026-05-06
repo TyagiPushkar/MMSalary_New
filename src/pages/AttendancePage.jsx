@@ -10,6 +10,8 @@ function AttendancePage() {
   const { items, loading, error } = useSelector((state) => state.attendance);
 
   const [searchName, setSearchName] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0],
   );
@@ -32,17 +34,28 @@ function AttendancePage() {
 
   const handleSearch = () => {
     setAppliedName(searchName);
+    setPage(1); // ✅ reset page
   };
 
   const handleReset = () => {
     setSearchName("");
     setAppliedName("");
     setSelectedDate(new Date().toISOString().split("T")[0]);
+    setPage(1); // ✅ reset page
   };
 
   const handleDateChange = (e) => {
     setSelectedDate(e.target.value);
   };
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
+
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+
+  const pageRows = filteredData.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   return (
     <section className="flex flex-col gap-4 overflow-hidden">
@@ -126,10 +139,10 @@ function AttendancePage() {
               >
                 <tr>
                   <th className="px-4 py-3 font-semibold text-white">
-                    Employee
+                    Employee ID
                   </th>
                   <th className="px-4 py-3 font-semibold text-white">
-                    Employee ID
+                    Employee
                   </th>
                   <th className="px-4 py-3 font-semibold text-white">
                     Entry Time
@@ -142,18 +155,18 @@ function AttendancePage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredData.map((record, idx) => (
+                {pageRows.map((record, idx) => (
                   <tr
                     key={record.id}
                     className={`border-t border-slate-100 hover:bg-slate-50 transition ${
                       idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"
                     }`}
                   >
-                    <td className="px-4 py-3 font-medium text-slate-900">
-                      {record.name}
-                    </td>
                     <td className="px-4 py-3 text-slate-700">
                       {record.employeeid}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      {record.name}
                     </td>
                     <td className="px-4 py-3 text-slate-700">
                       {record.entry_date} {record.entry_time}
@@ -166,7 +179,7 @@ function AttendancePage() {
                         {record.working_hours} hrs
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    {/* <td className="px-4 py-3">
                       <div className="flex gap-2">
                         {record.entry_photo && (
                           <a
@@ -191,6 +204,39 @@ function AttendancePage() {
                           </a>
                         )}
                       </div>
+                    </td> */}
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        {record.entry_photo && (
+                          <a
+                            href={record.entry_photo}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Entry Photo"
+                          >
+                            <img
+                              src={record.entry_photo}
+                              alt="Entry"
+                              className="h-10 w-10 object-cover rounded-md border border-gray-200 hover:scale-105 transition"
+                            />
+                          </a>
+                        )}
+
+                        {record.exit_photo && (
+                          <a
+                            href={record.exit_photo}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Exit Photo"
+                          >
+                            <img
+                              src={record.exit_photo}
+                              alt="Exit"
+                              className="h-10 w-10 object-cover rounded-md border border-gray-200 hover:scale-105 transition"
+                            />
+                          </a>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -200,8 +246,42 @@ function AttendancePage() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-slate-200 bg-slate-50 px-4 py-3 text-right text-xs text-slate-600">
-          Showing {filteredData.length} of {items.length} records
+        <div
+          className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-4 py-3 text-sm"
+          style={{ backgroundColor: HEADER_BLUE, color: "#fff" }}
+        >
+          <span>
+            {filteredData.length === 0
+              ? "No rows"
+              : `Showing ${(currentPage - 1) * pageSize + 1}–${Math.min(
+                  currentPage * pageSize,
+                  filteredData.length,
+                )} of ${filteredData.length}`}
+          </span>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="rounded border border-white/40 px-3 py-1 text-xs disabled:opacity-40"
+            >
+              Prev
+            </button>
+
+            <span className="text-xs">
+              Page {currentPage} / {totalPages}
+            </span>
+
+            <button
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="rounded border border-white/40 px-3 py-1 text-xs disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </section>

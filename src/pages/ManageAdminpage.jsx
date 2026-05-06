@@ -57,6 +57,22 @@ const EDITABLE_COLUMNS = [
   { key: "station_type", label: "Station Type" },
 ];
 
+// Utility functions
+const supervisorColumns = [
+  { key: "admin_name", label: "Admin Name" },
+  { key: "email", label: "Email" },
+  { key: "phone", label: "Phone" },
+  { key: "officeid", label: "Office ID" },
+  { key: "multi_officeid", label: "Multiple Office" },
+  { key: "city", label: "City" },
+  { key: "address", label: "Address" },
+  { key: "lat", label: "Latitude" },
+  { key: "lon", label: "Longitude" },
+  { key: "type", label: "Type" },
+  { key: "position", label: "Position" },
+  { key: "station_type", label: "Station Type" },
+];
+
 function getRowKey(row, index) {
   if (row.email != null && row.email !== "") return String(row.email);
   return `row-${index}`;
@@ -112,6 +128,10 @@ function ManageAdminPage() {
   const [listMode, setListMode] = useState("directory");
   const [banner, setBanner] = useState(null);
   const [modalError, setModalError] = useState(null);
+
+  //add supervisor modal state
+  const [showAddSupervisorModal, setShowAddSupervisorModal] = useState(false);
+  const [addSupervisorFormData, setAddSupervisorFormData] = useState({});
 
   useEffect(() => {
     dispatch(fetchAllAdminsThunk());
@@ -241,7 +261,7 @@ function ManageAdminPage() {
       });
     }
   };
-
+  //handle update status
   const handleUpdate = async () => {
     if (!editRow) return;
     setModalError(null);
@@ -259,6 +279,25 @@ function ManageAdminPage() {
     //   });
     // } catch (err) {
     //   setModalError(err || "Failed to update admin details.");
+    // }
+  };
+  //handle add supervisor
+  const handleAddSupervisor = async (formData) => {
+    setModalError(null);
+    const payload = {
+      ...formData,
+    };
+    console.log("Adding supervisor with payload:", payload);
+    // try {
+    //   const result = await dispatch(addEmployeeThunk({ payload })).unwrap();
+    //   await dispatch(fetchAllAdminsThunk());
+    //   setShowAddSupervisorModal(false);
+    //   setBanner({
+    //     type: "success",
+    //     text: result.message || "Supervisor added successfully.",
+    //   });
+    // } catch (err) {
+    //   setModalError(err || "Failed to add supervisor.");
     // }
   };
 
@@ -289,7 +328,7 @@ function ManageAdminPage() {
         >
           All Employees
         </button>
-        {/* <button
+        <button
           type="button"
           onClick={() => {
             setListMode("requests");
@@ -307,8 +346,8 @@ function ManageAdminPage() {
               : undefined
           }
         >
-          Request Employees
-        </button> */}
+          Add Supervisor
+        </button>
       </div>
 
       {banner && !editModalOpen && !detailModalOpen ? (
@@ -793,6 +832,77 @@ function ManageAdminPage() {
           </div>
         </div>
       ) : null}
+
+      {/* add supervisor modal */}
+      {showAddSupervisorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="rounded-lg bg-white p-6 shadow-lg">
+            <h2 className="text-lg font-semibold text-slate-800">
+              Add Supervisor
+            </h2>
+            <div className="mt-4 space-y-4">
+              {supervisorColumns.map((col) => (
+                <label
+                  key={col.key}
+                  className="block text-sm font-medium text-slate-700"
+                >
+                  {col.label}
+                  {col.type === "select" ? (
+                    <select
+                      value={addSupervisorFormData[col.key] || ""}
+                      onChange={(e) =>
+                        setAddSupervisorFormData({
+                          ...addSupervisorFormData,
+                          [col.key]: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
+                    >
+                      <option value="">Select...</option>
+                      {col.options?.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type={
+                        col.key === "supervisor_password" ? "password" : "text"
+                      }
+                      value={addSupervisorFormData[col.key] || ""}
+                      onChange={(e) =>
+                        setAddSupervisorFormData({
+                          ...addSupervisorFormData,
+                          [col.key]: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
+                    />
+                  )}
+                </label>
+              ))}
+            </div>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowAddSupervisorModal(false)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddSupervisor}
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+                style={{ backgroundColor: HEADER_BLUE }}
+              >
+                Add Supervisor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
