@@ -90,15 +90,15 @@ function AddSalary({
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!localSalary || String(localSalary).trim() === "") {
-      alert("Please enter salary amount");
-      return;
-    }
+    if (localSalary === "" || localSalary === null || localSalary === undefined) {
+  alert("Please enter salary amount");
+  return;
+}
 
-    if (localOffices.length === 0) {
-      alert("Please select at least one office");
-      return;
-    }
+    // if (localOffices.length === 0) {
+    //   alert("Please select at least one office");
+    //   return;
+    // }
 
     const payload = {
       salary: localSalary,

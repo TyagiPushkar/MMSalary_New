@@ -2,13 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import PageTitle from "../components/shared/PageTitle";
 import StatusToggle from "../components/shared/StatusToggle";
-import { FiEye, FiEdit2, FiRefreshCw } from "react-icons/fi";
+import { FiEye, FiEdit2, FiRefreshCw, FiSearch, FiX } from "react-icons/fi";
 import {
   fetchAllAdminsThunk,
   updateAdminStatusThunk,
   updateAdminDetailsThunk,
+  createSupervisorThunk,
 } from "../store/slices/adminSlice";
 import { fetchOfficesThunk } from "../store/slices/officeSlice";
+import { fetchEmployeesThunk } from "../store/slices/employeeSlice";
 import axios from "axios";
 
 const HEADER_BLUE = "#1547bd";
@@ -57,22 +59,6 @@ const EDITABLE_COLUMNS = [
   { key: "station_type", label: "Station Type" },
 ];
 
-// Utility functions
-const supervisorColumns = [
-  { key: "admin_name", label: "Admin Name" },
-  { key: "email", label: "Email" },
-  { key: "phone", label: "Phone" },
-  { key: "officeid", label: "Office ID" },
-  { key: "multi_officeid", label: "Multiple Office" },
-  { key: "city", label: "City" },
-  { key: "address", label: "Address" },
-  { key: "lat", label: "Latitude" },
-  { key: "lon", label: "Longitude" },
-  { key: "type", label: "Type" },
-  { key: "position", label: "Position" },
-  { key: "station_type", label: "Station Type" },
-];
-
 function getRowKey(row, index) {
   if (row.email != null && row.email !== "") return String(row.email);
   return `row-${index}`;
@@ -110,6 +96,7 @@ function ManageAdminPage() {
     (state) => state.admins,
   );
   const { items: offices } = useSelector((state) => state.offices);
+  const { items: employees } = useSelector((state) => state.employees);
 
   const [quickFilter, setQuickFilter] = useState("");
   const [density, setDensity] = useState("normal");
@@ -131,12 +118,34 @@ function ManageAdminPage() {
 
   //add supervisor modal state
   const [showAddSupervisorModal, setShowAddSupervisorModal] = useState(false);
-  const [addSupervisorFormData, setAddSupervisorFormData] = useState({});
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [supervisorFormData, setSupervisorFormData] = useState({
+    email: "",
+    admin_password: "",
+    officeid: "",
+    // multi_officeid: "",
+  });
 
   useEffect(() => {
     dispatch(fetchAllAdminsThunk());
     dispatch(fetchOfficesThunk());
+    dispatch(fetchEmployeesThunk());
   }, [dispatch]);
+
+  // Filter employees based on search
+  const filteredEmployees = useMemo(() => {
+    if (!employeeSearch.trim()) return [];
+    const searchTerm = employeeSearch.toLowerCase().trim();
+    return employees.filter(
+      (emp) =>
+        emp.name?.toLowerCase().includes(searchTerm) ||
+        emp.employeeid?.toLowerCase().includes(searchTerm) ||
+        emp.email?.toLowerCase().includes(searchTerm) ||
+        emp.phone?.includes(searchTerm),
+    );
+  }, [employees, employeeSearch]);
 
   const filteredRows = useMemo(() => {
     const q = quickFilter.trim().toLowerCase();
@@ -190,6 +199,45 @@ function ManageAdminPage() {
     setMultiSelectOpen(false);
   };
 
+  const openAddSupervisorModal = () => {
+    setSelectedEmployee(null);
+    setEmployeeSearch("");
+    setSupervisorFormData({
+      email: "",
+      admin_password: "",
+      officeid: "",
+      multi_officeid: "",
+    });
+    setShowAddSupervisorModal(true);
+    setModalError(null);
+  };
+
+  const selectEmployee = (employee) => {
+    setSelectedEmployee(employee);
+    setEmployeeSearch(employee.name);
+    setShowDropdown(false);
+    // Auto-fill form data from selected employee
+    setSupervisorFormData({
+      email: "",
+      admin_password: "",
+      officeid: "",
+      // multi_officeid: "",
+    });
+  };
+
+  const handleSupervisorChange = (key, value) => {
+    setSupervisorFormData((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const getFullImageUrl = (path) => {
+    if (!path || path === "None") return null;
+    if (path.startsWith("http")) return path;
+    return `https://namami-infotech.com/MMSalary/uploads/${path}`;
+  };
+
   //handle reset mobile devices
   const handleResetMobile = async (admin) => {
     const adminId = admin?.id || admin?.admin_id;
@@ -235,7 +283,7 @@ function ManageAdminPage() {
 
   // Handle admin status update with API call
   const handleStatusToggle = async (admin) => {
-    const adminId = admin.email; // Assuming email is unique identifier
+    const adminId = admin.email;
     const currentStatus = admin.active_status == 1 ? 1 : 0;
     const newStatus = currentStatus === 1 ? 0 : 1;
 
@@ -252,7 +300,6 @@ function ManageAdminPage() {
         text: `Admin status updated successfully`,
       });
 
-      // Refresh list
       dispatch(fetchAllAdminsThunk());
     } catch (err) {
       setBanner({
@@ -261,7 +308,7 @@ function ManageAdminPage() {
       });
     }
   };
-  //handle update status
+
   const handleUpdate = async () => {
     if (!editRow) return;
     setModalError(null);
@@ -269,36 +316,43 @@ function ManageAdminPage() {
       ...editFormData,
     };
     console.log("Updating admin with payload:", payload);
-    // try {
-    //   const result = await dispatch(updateAdminDetailsThunk(payload)).unwrap();
-    //   await dispatch(fetchAllAdminsThunk());
-    //   closeEditModal();
-    //   setBanner({
-    //     type: "success",
-    //     text: result.message || "Updated successfully.",
-    //   });
-    // } catch (err) {
-    //   setModalError(err || "Failed to update admin details.");
-    // }
   };
-  //handle add supervisor
-  const handleAddSupervisor = async (formData) => {
-    setModalError(null);
+
+  const handleAddSupervisor = async () => {
+    if (!selectedEmployee) {
+      setModalError("Please select an employee first");
+      return;
+    }
+
+    if (!supervisorFormData.admin_password) {
+      setModalError("Please enter a password");
+      return;
+    }
+
     const payload = {
-      ...formData,
+      employeeid: selectedEmployee.employeeid,
+      email: supervisorFormData.email,
+      password: supervisorFormData.admin_password,
+      officeid: supervisorFormData.officeid,
+      multi_officeid: supervisorFormData.multi_officeid,
+      name: selectedEmployee.name,
+      phone: selectedEmployee.phone,
     };
+
     console.log("Adding supervisor with payload:", payload);
-    // try {
-    //   const result = await dispatch(addEmployeeThunk({ payload })).unwrap();
-    //   await dispatch(fetchAllAdminsThunk());
-    //   setShowAddSupervisorModal(false);
-    //   setBanner({
-    //     type: "success",
-    //     text: result.message || "Supervisor added successfully.",
-    //   });
-    // } catch (err) {
-    //   setModalError(err || "Failed to add supervisor.");
-    // }
+
+    try {
+      await dispatch(createSupervisorThunk(payload)).unwrap();
+      await dispatch(fetchAllAdminsThunk());
+      setShowAddSupervisorModal(false);
+      setBanner({
+        type: "success",
+        text: "Supervisor added successfully",
+      });
+      setTimeout(() => setBanner(null), 3000);
+    } catch (err) {
+      setModalError(err || "Failed to add supervisor");
+    }
   };
 
   return (
@@ -330,11 +384,7 @@ function ManageAdminPage() {
         </button>
         <button
           type="button"
-          onClick={() => {
-            setListMode("requests");
-            setPage(1);
-            setQuickFilter("");
-          }}
+          onClick={openAddSupervisorModal}
           className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
             listMode === "requests"
               ? "text-white shadow"
@@ -459,7 +509,6 @@ function ManageAdminPage() {
                             : "bg-slate-50/40 hover:bg-slate-50/60"
                         }`}
                       >
-                        {/* View Icon Button */}
                         <td className="px-2 py-2 text-center whitespace-nowrap">
                           <button
                             type="button"
@@ -471,8 +520,6 @@ function ManageAdminPage() {
                             <FiEye size={16} />
                           </button>
                         </td>
-
-                        {/* Essential Columns */}
                         {ESSENTIAL_COLUMNS.map((col) => (
                           <td
                             key={col.key}
@@ -482,7 +529,6 @@ function ManageAdminPage() {
                             {cellValue(row, col.key)}
                           </td>
                         ))}
-                        {/* Reset Button */}
                         <td className="px-2 py-2 text-center whitespace-nowrap">
                           <button
                             type="button"
@@ -494,8 +540,6 @@ function ManageAdminPage() {
                             <FiRefreshCw size={16} />
                           </button>
                         </td>
-
-                        {/* Status Toggle Slide Button */}
                         <td className="px-2 py-2 text-center whitespace-nowrap">
                           <StatusToggle
                             isActive={isActive}
@@ -504,8 +548,6 @@ function ManageAdminPage() {
                             loading={statusUpdateLoading}
                           />
                         </td>
-
-                        {/* Action Buttons */}
                         <td className="px-2 py-2 whitespace-nowrap text-center">
                           <button
                             type="button"
@@ -706,9 +748,7 @@ function ManageAdminPage() {
                                   No offices available
                                 </p>
                               ) : (
-                                // Convert the object to an array of entries [key, value]
                                 Object.entries(offices).map(([key, office]) => {
-                                  // Handle both scenarios: if the data is an object or just a string
                                   const officeId =
                                     typeof office === "object" &&
                                     office !== null
@@ -833,56 +873,221 @@ function ManageAdminPage() {
         </div>
       ) : null}
 
-      {/* add supervisor modal */}
+      {/* Add Supervisor Modal - Updated with Employee Search */}
       {showAddSupervisorModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="rounded-lg bg-white p-6 shadow-lg">
-            <h2 className="text-lg font-semibold text-slate-800">
-              Add Supervisor
-            </h2>
-            <div className="mt-4 space-y-4">
-              {supervisorColumns.map((col) => (
-                <label
-                  key={col.key}
-                  className="block text-sm font-medium text-slate-700"
-                >
-                  {col.label}
-                  {col.type === "select" ? (
-                    <select
-                      value={addSupervisorFormData[col.key] || ""}
-                      onChange={(e) =>
-                        setAddSupervisorFormData({
-                          ...addSupervisorFormData,
-                          [col.key]: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
-                    >
-                      <option value="">Select...</option>
-                      {col.options?.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type={
-                        col.key === "supervisor_password" ? "password" : "text"
-                      }
-                      value={addSupervisorFormData[col.key] || ""}
-                      onChange={(e) =>
-                        setAddSupervisorFormData({
-                          ...addSupervisorFormData,
-                          [col.key]: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-lg border border-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
-                    />
-                  )}
-                </label>
-              ))}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Add Supervisor
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowAddSupervisorModal(false)}
+                className="text-lg text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
             </div>
+
+            {modalError && (
+              <p className="mb-3 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                {modalError}
+              </p>
+            )}
+
+            <div className="space-y-4">
+              {/* Employee Search Field */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Search Employee <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <FiSearch
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
+                    size={16}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search by name, employee ID, email or phone..."
+                    value={employeeSearch}
+                    onChange={(e) => {
+                      setEmployeeSearch(e.target.value);
+                      setShowDropdown(true);
+                      if (!e.target.value) {
+                        setSelectedEmployee(null);
+                      }
+                    }}
+                    onFocus={() => setShowDropdown(true)}
+                    className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm outline-none focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/30"
+                  />
+                  {showDropdown && filteredEmployees.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
+                      {filteredEmployees.map((emp) => (
+                        <button
+                          key={emp.id || emp.employeeid}
+                          type="button"
+                          onClick={() => selectEmployee(emp)}
+                          className="w-full text-left p-3 hover:bg-blue-50 transition-all duration-200 border-b border-slate-100 last:border-0"
+                        >
+                          <div className="flex items-center gap-3">
+                            {emp.photo && (
+                              <img
+                                src={getFullImageUrl(emp.photo)}
+                                className="w-10 h-10 rounded-full object-cover"
+                                alt={emp.name}
+                              />
+                            )}
+                            <div className="flex-1">
+                              <p className="font-medium text-slate-800 text-sm">
+                                {emp.name}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                ID: {emp.employeeid} • {emp.phone}{" "}
+                                {emp.email ? `• ${emp.email}` : ""}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedEmployee && (
+                  <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-600 font-semibold">
+                      Selected Employee:
+                    </p>
+                    <p className="text-sm font-medium text-slate-800">
+                      {selectedEmployee.name}
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      ID: {selectedEmployee.employeeid} • Phone:{" "}
+                      {selectedEmployee.phone}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Email Field */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={supervisorFormData.email}
+                  onChange={(e) =>
+                    handleSupervisorChange("email", e.target.value)
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/30"
+                  placeholder="supervisor@example.com"
+                />
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={supervisorFormData.admin_password}
+                  onChange={(e) =>
+                    handleSupervisorChange("admin_password", e.target.value)
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/30"
+                  placeholder="Enter password"
+                />
+              </div>
+
+              {/* Office ID Field */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Primary Office ID{" "}
+                </label>
+                <select
+                  value={supervisorFormData.officeid}
+                  onChange={(e) =>
+                    handleSupervisorChange("officeid", e.target.value)
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/30"
+                >
+                  <option value="">Select Office</option>
+                  {Object.entries(offices).map(([key, office]) => {
+                    const officeId =
+                      typeof office === "object" && office !== null
+                        ? office.id
+                        : key;
+                    const officeName =
+                      typeof office === "object" && office !== null
+                        ? office.officename || office.office_name
+                        : office;
+                    return (
+                      <option key={key} value={officeId}>
+                        {officeName}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* Multiple Office Access */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Multiple Office Access
+                </label>
+                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
+                  {Object.entries(offices).map(([key, office]) => {
+                    const officeId =
+                      typeof office === "object" && office !== null
+                        ? office.id
+                        : key;
+                    const officeName =
+                      typeof office === "object" && office !== null
+                        ? office.officename || office.office_name
+                        : office;
+                    const selectedIds = supervisorFormData.multi_officeid
+                      ? String(supervisorFormData.multi_officeid).split(",")
+                      : [];
+                    const isChecked = selectedIds.includes(String(officeId));
+
+                    return (
+                      <label
+                        key={key}
+                        className="flex items-center gap-2 p-1 rounded cursor-pointer hover:bg-blue-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            let updated = [...selectedIds];
+                            if (e.target.checked) {
+                              if (!updated.includes(String(officeId))) {
+                                updated.push(String(officeId));
+                              }
+                            } else {
+                              updated = updated.filter(
+                                (id) => id !== String(officeId),
+                              );
+                            }
+                            handleSupervisorChange(
+                              "multi_officeid",
+                              updated.join(","),
+                            );
+                          }}
+                          className="rounded"
+                        />
+                        <span className="text-sm text-slate-700">
+                          {officeName}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
             <div className="mt-6 flex flex-wrap justify-end gap-3">
               <button
                 type="button"

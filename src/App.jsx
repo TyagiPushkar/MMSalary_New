@@ -58,7 +58,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout";
 import ProtectedRoute from "./components/routing/ProtectedRoute";
-import DashboardPage from "./pages/DashboardPage";
+// import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import AttendancePage from "./pages/AttendancePage";
 import EmployeeListPage from "./pages/EmployeeListPage";

@@ -121,7 +121,7 @@ function RegistrationModal({
                 alt="Employee"
                 className="h-24 w-24 rounded-lg border-2 border-slate-300 object-cover"
                 onError={(e) => {
-                  e.target.src = "https://via.placeholder.com/96?text=Photo";
+                  e.target.src = "/images/no-photo.png";
                 }}
               />
               <p className="text-xs font-medium text-slate-600">
@@ -305,9 +305,24 @@ function RegistrationModal({
                   Aadhar Number
                 </span>
                 <input
+                  type="text"
                   name="aadhar_number"
                   value={regForm.aadhar_number || ""}
-                  onChange={onRegChange}
+                  onChange={(e) => {
+                    const value = e.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 12);
+
+                    onRegChange({
+                      target: {
+                        name: "aadhar_number",
+                        value,
+                      },
+                    });
+                  }}
+                  maxLength={12}
+                  inputMode="numeric"
+                  placeholder="Enter 12 digit Aadhaar"
                   className={fieldClass}
                 />
               </label>
