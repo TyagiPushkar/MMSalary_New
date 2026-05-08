@@ -11,6 +11,7 @@ export const fetchEmployeesThunk = createAsyncThunk(
   },
 );
 
+
 export const fetchRequestEmployeesThunk = createAsyncThunk(
   "employees/fetchRequest",
   async (_, thunkApi) => {
@@ -45,6 +46,7 @@ export const updateEmployeeDetailsThunk = createAsyncThunk(
   async (payload, thunkApi) => {
     try {
       const { token } = thunkApi.getState().auth;
+      console.log("Updating employee with payload in thunk:", payload);
       const data = await employeeService.updateEmployeeDetails(payload, token);
       if (data.status !== 200) {
         return thunkApi.rejectWithValue(data.message || "Update failed");

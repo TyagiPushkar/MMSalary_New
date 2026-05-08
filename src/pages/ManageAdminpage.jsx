@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import PageTitle from "../components/shared/PageTitle";
 import StatusToggle from "../components/shared/StatusToggle";
@@ -21,7 +21,7 @@ const ESSENTIAL_COLUMNS = [
   { key: "email", label: "Email", minW: "min-w-[140px]" },
   { key: "phone", label: "Phone", minW: "min-w-[90px]" },
   { key: "officeid", label: "Office ID", minW: "min-w-[80px]" },
-  { key: "multi_officeid", label: "Multi Office", minW: "min-w-[90px]" },
+  // { key: "multi_officeid", label: "Multi Office", minW: "min-w-[90px]" },
 ];
 
 // All columns for detail view
@@ -30,30 +30,31 @@ const ALL_COLUMNS = [
   { key: "email", label: "Email" },
   { key: "phone", label: "Phone" },
   { key: "officeid", label: "Office ID" },
-  { key: "multi_officeid", label: "Multiple Office" },
+  // { key: "multi_officeid", label: "Multiple Office" },
   { key: "city", label: "City" },
   { key: "address", label: "Address" },
-  { key: "lat", label: "Latitude" },
-  { key: "lon", label: "Longitude" },
+  // { key: "lat", label: "Latitude" },
+  // { key: "lon", label: "Longitude" },
   { key: "type", label: "Type" },
   { key: "position", label: "Position" },
   { key: "station_type", label: "Station Type" },
   { key: "deviceid", label: "Device ID" },
-  { key: "active_status", label: "Active Status" },
+  // { key: "active_status", label: "Active Status" },
 ];
 
 //All columns for edit view
 const EDITABLE_COLUMNS = [
+  // { key: "id", label: "ID" },
   { key: "admin_name", label: "Admin Name" },
-  { key: "email", label: "Email" },
   { key: "phone", label: "Phone" },
+  { key: "email", label: "Email" },
+  { key: "admin_password", label: "Password" },
   { key: "officeid", label: "Office ID" },
-  { key: "multi_officeid", label: "Multiple Office" },
+  // { key: "multi_officeid", label: "Multiple Office" },
   { key: "city", label: "City" },
   { key: "address", label: "Address" },
   { key: "lat", label: "Latitude" },
   { key: "lon", label: "Longitude" },
-  { key: "admin_password", label: "Password" },
   { key: "type", label: "Type" },
   { key: "position", label: "Position" },
   { key: "station_type", label: "Station Type" },
@@ -95,6 +96,9 @@ function ManageAdminPage() {
   const { items, loading, statusUpdateLoading, updateLoading } = useSelector(
     (state) => state.admins,
   );
+
+  // const userType = useSelector((state) => state.auth.user?.type);
+  const auth = useSelector((state) => state.auth);
   const { items: offices } = useSelector((state) => state.offices);
   const { items: employees } = useSelector((state) => state.employees);
 
@@ -118,34 +122,117 @@ function ManageAdminPage() {
 
   //add supervisor modal state
   const [showAddSupervisorModal, setShowAddSupervisorModal] = useState(false);
+  // Change this line:
+  const [employeesNotSupervisor, setEmployeesNotSupervisor] = useState([]);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [supervisorFormData, setSupervisorFormData] = useState({
+    admin_name: "",
     email: "",
+    phone: "",
     admin_password: "",
     officeid: "",
-    // multi_officeid: "",
+    city: "",
+    address: "",
+    // lat: editFormData.lat || "",
+    // lon: editFormData.lon || "",
+    // type: editFormData.type || "",
+    // position: editFormData.position || "",
+    // station_type: editFormData.station_type || "",
   });
+
+  // Add debounce hook
+  function useDebounce(value, delay) {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value);
+      }, delay);
+
+      return () => {
+        clearTimeout(handler);
+      };
+    }, [value, delay]);
+
+    return debouncedValue;
+  }
+
+  // In component:
+  const debouncedEmployeeSearch = useDebounce(employeeSearch, 300);
+
+  const fetchemployeenotadmin = useCallback(async () => {
+    if (!auth.token) return;
+
+    try {
+      const res = await axios.get(
+        "https://namami-infotech.com/MMSalary/Admin/get_employe_notsupervisor.php",
+        {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+          },
+        },
+      );
+
+      let employeeList = [];
+      if (Array.isArray(res.data)) {
+        employeeList = res.data;
+      } else if (res.data?.data && Array.isArray(res.data.data)) {
+        employeeList = res.data.data;
+      } else if (res.data?.employees && Array.isArray(res.data.employees)) {
+        employeeList = res.data.employees;
+      } else {
+        employeeList = [];
+      }
+
+      setEmployeesNotSupervisor(employeeList);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+      setEmployeesNotSupervisor([]);
+    }
+  }, [auth.token]);
+
+  useEffect(() => {
+    fetchemployeenotadmin();
+  }, []);
 
   useEffect(() => {
     dispatch(fetchAllAdminsThunk());
     dispatch(fetchOfficesThunk());
-    dispatch(fetchEmployeesThunk());
+    // dispatch(fetchEmployeesThunk());
   }, [dispatch]);
 
   // Filter employees based on search
   const filteredEmployees = useMemo(() => {
-    if (!employeeSearch.trim()) return [];
-    const searchTerm = employeeSearch.toLowerCase().trim();
-    return employees.filter(
-      (emp) =>
-        emp.name?.toLowerCase().includes(searchTerm) ||
-        emp.employeeid?.toLowerCase().includes(searchTerm) ||
-        emp.email?.toLowerCase().includes(searchTerm) ||
-        emp.phone?.includes(searchTerm),
-    );
-  }, [employees, employeeSearch]);
+    if (
+      !debouncedEmployeeSearch.trim() ||
+      !Array.isArray(employeesNotSupervisor) ||
+      employeesNotSupervisor.length === 0
+    ) {
+      return [];
+    }
+
+    const searchTerm = debouncedEmployeeSearch.toLowerCase().trim();
+    const results = [];
+    const len = employeesNotSupervisor.length;
+
+    for (let i = 0; i < len; i++) {
+      const emp = employeesNotSupervisor[i];
+      if (
+        (emp.name?.toLowerCase() || "").includes(searchTerm) ||
+        (emp.employeeid?.toLowerCase() || "").includes(searchTerm) ||
+        (emp.email?.toLowerCase() || "").includes(searchTerm) ||
+        (emp.phone?.toLowerCase() || "").includes(searchTerm)
+      ) {
+        results.push(emp);
+      }
+
+      if (results.length >= 50) break;
+    }
+
+    return results;
+  }, [employeesNotSupervisor, debouncedEmployeeSearch]);
 
   const filteredRows = useMemo(() => {
     const q = quickFilter.trim().toLowerCase();
@@ -175,13 +262,20 @@ function ManageAdminPage() {
     setDetailModalOpen(true);
   };
 
-  // Open edit modal
   const openEditModal = (row) => {
     setEditRow(row);
-    const formData = {};
-    EDITABLE_COLUMNS.forEach((col) => {
-      formData[col.key] = row[col.key] ?? "";
-    });
+
+    const officeNames = row.officeid
+      ? String(row.officeid)
+          .split(",")
+          .map((v) => v.trim()) // already names from backend OR fix later
+      : [];
+
+    const formData = {
+      ...row,
+      officeid: officeNames.join(","), // ONLY names stored
+    };
+
     setEditFormData(formData);
     setEditModalOpen(true);
     setMultiSelectOpen(false);
@@ -203,10 +297,14 @@ function ManageAdminPage() {
     setSelectedEmployee(null);
     setEmployeeSearch("");
     setSupervisorFormData({
+      admin_name: "",
       email: "",
+      phone: "",
       admin_password: "",
       officeid: "",
       multi_officeid: "",
+      city: "",
+      address: "",
     });
     setShowAddSupervisorModal(true);
     setModalError(null);
@@ -216,12 +314,34 @@ function ManageAdminPage() {
     setSelectedEmployee(employee);
     setEmployeeSearch(employee.name);
     setShowDropdown(false);
-    // Auto-fill form data from selected employee
+
+    // Convert employee's office data to office names
+    let officeNames = "";
+    if (employee.officeid) {
+      const officeIds = String(employee.officeid).split(",");
+      const names = officeIds.map((id) => {
+        for (const [key, office] of Object.entries(offices)) {
+          const officeId =
+            typeof office === "object" && office !== null ? office.id : key;
+          if (String(officeId) === String(id.trim())) {
+            return typeof office === "object" && office !== null
+              ? office.officename || office.office_name || id
+              : office;
+          }
+        }
+        return id;
+      });
+      officeNames = names.join(",");
+    }
+
     setSupervisorFormData({
-      email: "",
+      admin_name: employee.name || "",
+      email: employee.email || "",
+      phone: employee.phone || "",
       admin_password: "",
-      officeid: "",
-      // multi_officeid: "",
+      officeid: officeNames, // Only officeid field
+      city: employee.city || "",
+      address: employee.address || "",
     });
   };
 
@@ -311,11 +431,75 @@ function ManageAdminPage() {
 
   const handleUpdate = async () => {
     if (!editRow) return;
+
     setModalError(null);
-    const payload = {
-      ...editFormData,
-    };
-    console.log("Updating admin with payload:", payload);
+
+    try {
+      // const token = user
+
+      // CLEAN PAYLOAD
+      const payload = {
+        id: editRow.id,
+        admin_name: editFormData.admin_name || "",
+        email: editFormData.email || "",
+        phone: editFormData.phone || "",
+        admin_password: editFormData.admin_password || "",
+        officeid: editFormData.officeid || "",
+        city: editFormData.city || "",
+        address: editFormData.address || "",
+        lat: editFormData.lat || "",
+        lon: editFormData.lon || "",
+        type: editFormData.type || "",
+        position: editFormData.position || "",
+        station_type: editFormData.station_type || "",
+      };
+      if (payload.officeid) {
+        payload.officeid = String(payload.officeid)
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean)
+          // remove numeric ids like 0,1,2 safely
+          .filter((v) => isNaN(v))
+          .join(",");
+      }
+
+      // console.log("FINAL PAYLOAD:", payload);
+
+      const response = await axios.post(
+        "https://namami-infotech.com/MMSalary/Admin/update_admin_details.php",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+          },
+        },
+      );
+
+      // console.log("UPDATE RESPONSE:", response.data);
+
+      if (response.data.status || response.data.success) {
+        await dispatch(fetchAllAdminsThunk());
+
+        closeEditModal();
+
+        setBanner({
+          type: "success",
+          text: response.data.message || "Admin updated successfully",
+        });
+
+        setTimeout(() => {
+          setBanner(null);
+        }, 3000);
+      } else {
+        throw new Error(response.data.message || "Update failed");
+      }
+    } catch (err) {
+      console.error(err);
+
+      setModalError(
+        err.response?.data?.message || err.message || "Failed to update admin",
+      );
+    }
   };
 
   const handleAddSupervisor = async () => {
@@ -331,19 +515,22 @@ function ManageAdminPage() {
 
     const payload = {
       employeeid: selectedEmployee.employeeid,
-      email: supervisorFormData.email,
-      password: supervisorFormData.admin_password,
-      officeid: supervisorFormData.officeid,
-      multi_officeid: supervisorFormData.multi_officeid,
-      name: selectedEmployee.name,
-      phone: selectedEmployee.phone,
+      admin_name: supervisorFormData.admin_name || selectedEmployee.name,
+      email: supervisorFormData.email || selectedEmployee.email,
+      phone: supervisorFormData.phone || selectedEmployee.phone,
+      admin_password: supervisorFormData.admin_password,
+      officeid: supervisorFormData.officeid || "",
+      city: supervisorFormData.city || "",
+      address: supervisorFormData.address || "",
     };
 
-    console.log("Adding supervisor with payload:", payload);
+    // console.log("Adding supervisor with payload:", payload);
 
     try {
       await dispatch(createSupervisorThunk(payload)).unwrap();
       await dispatch(fetchAllAdminsThunk());
+      await fetchemployeenotadmin(); // Refresh employee list
+
       setShowAddSupervisorModal(false);
       setBanner({
         type: "success",
@@ -687,15 +874,20 @@ function ManageAdminPage() {
           aria-modal="true"
           aria-labelledby="edit-admin-title"
         >
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2
-                id="edit-admin-title"
-                className="text-lg font-semibold text-slate-900"
-              >
-                Edit Admin: {editRow?.admin_name || "N/A"} (
-                {editRow?.email || "N/A"})
-              </h2>
+              <div>
+                <h2
+                  id="edit-admin-title"
+                  className="text-lg font-semibold text-slate-900"
+                >
+                  Edit Admin: {editRow?.admin_name || "N/A"}
+                </h2>
+
+                <p className="text-sm text-slate-500 mt-1">
+                  Admin ID: {editRow?.id || "N/A"}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={closeEditModal}
@@ -711,12 +903,10 @@ function ManageAdminPage() {
               </p>
             ) : null}
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {EDITABLE_COLUMNS.map((col) => {
-                const isTextarea =
-                  col.key === "address" || col.key === "admin_password";
-                const isMultiSelect = col.key === "multi_officeid";
-                const isReadOnly = false;
+                const isTextarea = col.key === "address";
+                const isMultiSelect = col.key === "officeid";
                 const value = editFormData[col.key] ?? "";
 
                 return (
@@ -727,85 +917,132 @@ function ManageAdminPage() {
                     <span className="mb-1 block font-medium text-slate-700">
                       {col.label}
                     </span>
+
                     {isMultiSelect ? (
                       <div className="relative">
+                        {/* Selected Chips (NAMES ONLY) */}
+                        {value &&
+                          String(value).split(",").filter(Boolean).length >
+                            0 && (
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {String(value)
+                                .split(",")
+                                .filter(Boolean)
+                                .map((officeName) => (
+                                  <div
+                                    key={officeName}
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs bg-gradient-to-r from-[#1547bd]/10 to-[#1e5ad1]/10 text-[#1547bd] border border-[#1547bd]/20"
+                                  >
+                                    <span className="font-medium">
+                                      {officeName}
+                                    </span>
+
+                                    <button
+                                      type="button"
+                                      className="ml-1 hover:text-red-600 text-[#1547bd] font-bold"
+                                      onClick={() => {
+                                        const newNames = String(value)
+                                          .split(",")
+                                          .filter((name) => name !== officeName)
+                                          .join(",");
+
+                                        setEditFormData({
+                                          ...editFormData,
+                                          [col.key]: newNames,
+                                        });
+                                      }}
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+
+                        {/* Dropdown */}
                         <button
                           type="button"
                           onClick={() => setMultiSelectOpen(!multiSelectOpen)}
-                          className="w-full rounded-lg border border-slate-900 px-3 py-2 text-left text-sm bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-[#1547bd]/30 outline-none"
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-left text-sm bg-white text-slate-700 hover:bg-slate-50 flex justify-between items-center"
                         >
-                          {value
-                            ? `${
-                                String(value).split(",").filter(Boolean).length
-                              } office(s) selected`
-                            : "Select Offices"}
+                          <span>
+                            {value &&
+                            String(value).split(",").filter(Boolean).length > 0
+                              ? `${String(value).split(",").filter(Boolean).length} office(s) selected`
+                              : "Select Offices"}
+                          </span>
+                          <span className="text-slate-400">▼</span>
                         </button>
+
+                        {/* Dropdown */}
                         {multiSelectOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-900 rounded-lg shadow-lg z-10">
-                            <div className="flex flex-col gap-2 p-3 max-h-48 overflow-y-auto">
-                              {Object.keys(offices).length === 0 ? (
-                                <p className="text-sm text-slate-500">
-                                  No offices available
-                                </p>
-                              ) : (
-                                Object.entries(offices).map(([key, office]) => {
-                                  const officeId =
-                                    typeof office === "object" &&
-                                    office !== null
-                                      ? office.id
-                                      : key;
-                                  const officeName =
-                                    typeof office === "object" &&
-                                    office !== null
-                                      ? office.officename || office.office_name
-                                      : office;
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
+                            <div className="p-2 border-b flex justify-between">
+                              <span className="text-xs font-semibold text-slate-500">
+                                Select Offices
+                              </span>
+                              <button
+                                onClick={() => setMultiSelectOpen(false)}
+                                className="text-xs text-slate-400"
+                              >
+                                Done
+                              </button>
+                            </div>
 
-                                  const selectedIds = value
-                                    ? String(value)
-                                        .split(",")
-                                        .map((id) => id.trim())
-                                    : [];
-                                  const isSelected = selectedIds.includes(
-                                    String(officeId),
-                                  );
+                            <div className="p-2 space-y-1">
+                              {Object.entries(offices).map(([key, office]) => {
+                                const officeName =
+                                  typeof office === "object"
+                                    ? office.officename || office.office_name
+                                    : office;
 
-                                  return (
-                                    <label
-                                      key={key}
-                                      className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded"
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={isSelected}
-                                        onChange={(e) => {
-                                          if (e.target.checked) {
-                                            const newIds = [
-                                              ...selectedIds,
-                                              String(officeId),
-                                            ];
-                                            setEditFormData({
-                                              ...editFormData,
-                                              [col.key]: newIds.join(","),
-                                            });
-                                          } else {
-                                            const newIds = selectedIds.filter(
-                                              (id) => id !== String(officeId),
-                                            );
-                                            setEditFormData({
-                                              ...editFormData,
-                                              [col.key]: newIds.join(","),
-                                            });
+                                const selectedNames = value
+                                  ? String(value)
+                                      .split(",")
+                                      .map((v) => v.trim())
+                                  : [];
+
+                                const isSelected =
+                                  selectedNames.includes(officeName);
+
+                                return (
+                                  <label
+                                    key={key}
+                                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
+                                      isSelected
+                                        ? "bg-blue-50 border border-blue-200"
+                                        : "hover:bg-slate-50"
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={(e) => {
+                                        let updated = selectedNames;
+
+                                        if (e.target.checked) {
+                                          if (!updated.includes(officeName)) {
+                                            updated.push(officeName);
                                           }
-                                        }}
-                                        className="rounded"
-                                      />
-                                      <span className="text-sm text-slate-700">
-                                        {officeName}
-                                      </span>
-                                    </label>
-                                  );
-                                })
-                              )}
+                                        } else {
+                                          updated = updated.filter(
+                                            (name) => name !== officeName,
+                                          );
+                                        }
+
+                                        setEditFormData({
+                                          ...editFormData,
+                                          [col.key]: updated.join(","),
+                                        });
+                                      }}
+                                    />
+
+                                    <span className="text-sm">
+                                      {officeName}
+                                    </span>
+                                  </label>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
@@ -819,19 +1056,12 @@ function ManageAdminPage() {
                             [col.key]: e.target.value,
                           })
                         }
-                        rows="2"
-                        readOnly={isReadOnly}
-                        className={`w-full rounded-lg border px-3 py-2 outline-none ${
-                          isReadOnly
-                            ? "border-slate-300 bg-slate-100 text-slate-700"
-                            : "border-slate-900 focus:ring-2 focus:ring-[#1547bd]/30"
-                        }`}
+                        rows="3"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
                       />
                     ) : (
                       <input
-                        type={
-                          col.key === "admin_password" ? "password" : "text"
-                        }
+                        type={col.key === "admin_password" ? "text" : "text"}
                         value={value}
                         onChange={(e) =>
                           setEditFormData({
@@ -839,12 +1069,8 @@ function ManageAdminPage() {
                             [col.key]: e.target.value,
                           })
                         }
-                        readOnly={isReadOnly}
-                        className={`w-full rounded-lg border px-3 py-2 outline-none ${
-                          isReadOnly
-                            ? "border-slate-300 bg-slate-100 text-slate-700"
-                            : "border-slate-900 focus:ring-2 focus:ring-[#1547bd]/30"
-                        }`}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-[#1547bd]/30"
+                        placeholder={`Enter ${col.label.toLowerCase()}`}
                       />
                     )}
                   </label>
@@ -969,7 +1195,23 @@ function ManageAdminPage() {
                 )}
               </div>
 
-              {/* Email Field */}
+              {/* Admin Name - Auto-filled */}
+              {/* <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Admin Name
+                </label>
+                <input
+                  type="text"
+                  value={supervisorFormData.admin_name}
+                  onChange={(e) =>
+                    handleSupervisorChange("admin_name", e.target.value)
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/30"
+                  placeholder="Admin Name"
+                />
+              </div> */}
+
+              {/* Email Field - Auto-filled */}
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">
                   Email Address
@@ -984,6 +1226,22 @@ function ManageAdminPage() {
                   placeholder="supervisor@example.com"
                 />
               </div>
+
+              {/* Phone Field - Auto-filled */}
+              {/* <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Phone Number
+                </label>
+                <input
+                  type="text"
+                  value={supervisorFormData.phone}
+                  onChange={(e) =>
+                    handleSupervisorChange("phone", e.target.value)
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/30"
+                  placeholder="Phone Number"
+                />
+              </div> */}
 
               {/* Password Field */}
               <div>
@@ -1001,56 +1259,117 @@ function ManageAdminPage() {
                 />
               </div>
 
-              {/* Office ID Field */}
-              <div>
+              {/* City Field */}
+              {/* <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">
-                  Primary Office ID{" "}
+                  City
                 </label>
-                <select
-                  value={supervisorFormData.officeid}
+                <input
+                  type="text"
+                  value={supervisorFormData.city}
                   onChange={(e) =>
-                    handleSupervisorChange("officeid", e.target.value)
+                    handleSupervisorChange("city", e.target.value)
                   }
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/30"
-                >
-                  <option value="">Select Office</option>
-                  {Object.entries(offices).map(([key, office]) => {
-                    const officeId =
-                      typeof office === "object" && office !== null
-                        ? office.id
-                        : key;
-                    const officeName =
-                      typeof office === "object" && office !== null
-                        ? office.officename || office.office_name
-                        : office;
-                    return (
-                      <option key={key} value={officeId}>
-                        {officeName}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
+                  placeholder="City"
+                />
+              </div> */}
 
-              {/* Multiple Office Access */}
+              {/* Address Field */}
+              {/* <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Address
+                </label>
+                <textarea
+                  value={supervisorFormData.address}
+                  onChange={(e) =>
+                    handleSupervisorChange("address", e.target.value)
+                  }
+                  rows="2"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/30"
+                  placeholder="Address"
+                />
+              </div> */}
+
+              {/* Office Access Section - Only officeid field */}
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">
-                  Multiple Office Access
+                  Office Access
                 </label>
+
+                {/* Selected Chips Display */}
+                {supervisorFormData.officeid &&
+                  String(supervisorFormData.officeid).split(",").filter(Boolean)
+                    .length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {String(supervisorFormData.officeid)
+                        .split(",")
+                        .filter(Boolean)
+                        .map((officeName) => {
+                          // Find full office name if it's an ID
+                          let displayName = officeName;
+                          for (const [key, office] of Object.entries(offices)) {
+                            const officeId =
+                              typeof office === "object" && office !== null
+                                ? office.id
+                                : key;
+                            const name =
+                              typeof office === "object" && office !== null
+                                ? office.officename || office.office_name
+                                : office;
+                            if (
+                              String(officeId) === String(officeName) ||
+                              String(name) === String(officeName)
+                            ) {
+                              displayName = name;
+                              break;
+                            }
+                          }
+                          return (
+                            <div
+                              key={officeName}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs bg-gradient-to-r from-[#1547bd]/10 to-[#1e5ad1]/10 text-[#1547bd] border border-[#1547bd]/20"
+                            >
+                              <span className="font-medium">{displayName}</span>
+                              <button
+                                type="button"
+                                className="ml-1 hover:text-red-600 text-[#1547bd] font-bold"
+                                onClick={() => {
+                                  const newIds = String(
+                                    supervisorFormData.officeid,
+                                  )
+                                    .split(",")
+                                    .filter(
+                                      (id) =>
+                                        id.trim() !== officeName &&
+                                        id.trim() !== displayName,
+                                    )
+                                    .join(",");
+                                  handleSupervisorChange("officeid", newIds);
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+
+                {/* Office Checkbox Grid - Stores names, not IDs */}
                 <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
                   {Object.entries(offices).map(([key, office]) => {
-                    const officeId =
-                      typeof office === "object" && office !== null
-                        ? office.id
-                        : key;
                     const officeName =
                       typeof office === "object" && office !== null
                         ? office.officename || office.office_name
                         : office;
-                    const selectedIds = supervisorFormData.multi_officeid
-                      ? String(supervisorFormData.multi_officeid).split(",")
+
+                    const selectedNames = supervisorFormData.officeid
+                      ? String(supervisorFormData.officeid)
+                          .split(",")
+                          .map((n) => n.trim())
                       : [];
-                    const isChecked = selectedIds.includes(String(officeId));
+                    const isChecked = selectedNames.includes(officeName);
 
                     return (
                       <label
@@ -1061,22 +1380,22 @@ function ManageAdminPage() {
                           type="checkbox"
                           checked={isChecked}
                           onChange={(e) => {
-                            let updated = [...selectedIds];
+                            let updated = [...selectedNames];
                             if (e.target.checked) {
-                              if (!updated.includes(String(officeId))) {
-                                updated.push(String(officeId));
+                              if (!updated.includes(officeName)) {
+                                updated.push(officeName);
                               }
                             } else {
                               updated = updated.filter(
-                                (id) => id !== String(officeId),
+                                (name) => name !== officeName,
                               );
                             }
                             handleSupervisorChange(
-                              "multi_officeid",
+                              "officeid",
                               updated.join(","),
                             );
                           }}
-                          className="rounded"
+                          className="rounded w-4 h-4"
                         />
                         <span className="text-sm text-slate-700">
                           {officeName}
@@ -1085,6 +1404,9 @@ function ManageAdminPage() {
                     );
                   })}
                 </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Select multiple offices as needed
+                </p>
               </div>
             </div>
 

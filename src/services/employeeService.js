@@ -108,24 +108,26 @@ export const employeeService = {
     }
   },
 
-  async updateEmployeeDetails(payload, token, user) {
-    if (!token || !user) {
-      const fallback = await fakeApi.getEmployees();
-      return { data: fallback.data };
+  async updateEmployeeDetails(payload, token) {
+    // user parameter ki zaroorat nahi agar aap usey use nahi kar rahe
+    if (!token) {
+      throw new Error("No token found");
     }
+
+    console.log("Making actual Axios call now...");
+
     const response = await axios.post(
       `${PHP_BASE_URL}/Employee/update_employee.php`,
       payload,
       {
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          // Content-Type hamesha khali chodein FormData ke liye
         },
       },
     );
     return response.data;
   },
-
   async updateEmployeeStatus(employeeid, status, token) {
     if (!token) {
       throw new Error("Authorization token required");

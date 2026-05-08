@@ -24,10 +24,11 @@ import {
 } from "react-icons/fi";
 import {
   fetchEmployeesThunk,
-  updateEmployeeDetailsThunk,
+  // updateEmployeeDetailsThunk,
   updateEmployeeStatusThunk,
 } from "../store/slices/employeeSlice";
 import { fetchOfficesThunk } from "../store/slices/officeSlice";
+import axios from "axios";
 
 const HEADER_BLUE = "#1547bd";
 const HEADER_GRADIENT = "linear-gradient(135deg, #1547bd 0%, #1e5ad1 100%)";
@@ -143,6 +144,8 @@ function EmployeeListPage() {
   const [editForm, setEditForm] = useState({});
   const [files, setFiles] = useState({});
 
+  const auth = useSelector((state) => state.auth);
+
   const [banner, setBanner] = useState(null);
   const [modalError, setModalError] = useState(null);
 
@@ -180,12 +183,22 @@ function EmployeeListPage() {
   };
 
   const openEditModal = (row) => {
+    // Parse officeid from comma-separated string to array
+    let officeArray = [];
+
+    if (row.officeid) {
+      if (typeof row.officeid === "string") {
+        officeArray = row.officeid.split(",").filter((id) => id.trim());
+      } else if (Array.isArray(row.officeid)) {
+        officeArray = [...row.officeid];
+      }
+    }
+
     setEditRow(row);
     setEditForm({
       ...row,
-      multi_officeids: row.multi_officeids
-        ? String(row.multi_officeids).split(",")
-        : [],
+      officeid: officeArray, // Array mein store karo
+      // primary_office ko remove karo ya optional rakho
     });
     setFiles({});
     setEditModalOpen(true);
@@ -251,38 +264,89 @@ function EmployeeListPage() {
   const handleUpdate = async () => {
     const formData = new FormData();
 
+    // console.log("=== EDIT FORM DATA ===");
+    // console.log("editForm:", editForm);
+
+    // 1. Employee ID (mandatory)
     formData.append("employeeid", editForm.employeeid);
 
+    // 2. All text fields
+    const excludeKeys = [
+      "photo",
+      "officeid",
+      "multi_officeids",
+      "primary_office",
+    ];
+
     Object.keys(editForm).forEach((key) => {
-      if (key !== "photo" && key !== "multi_officeids") {
-        formData.append(key, editForm[key]);
+      if (!excludeKeys.includes(key)) {
+        if (
+          editForm[key] !== null &&
+          editForm[key] !== undefined &&
+          editForm[key] !== ""
+        ) {
+          formData.append(key, editForm[key]);
+          // console.log(`Appending ${key}:`, editForm[key]);
+        }
       }
     });
 
-    if (editForm.multi_officeids && Array.isArray(editForm.multi_officeids)) {
-      formData.append("multi_officeids", editForm.multi_officeids.join(","));
+    // 3. Officeid - Convert array to comma separated string
+    if (editForm.officeid && Array.isArray(editForm.officeid)) {
+      const officeidString = editForm.officeid.join(",");
+      formData.append("officeid", officeidString);
+      // console.log("Appending officeid string:", officeidString);
+    } else if (typeof editForm.officeid === "string") {
+      formData.append("officeid", editForm.officeid);
+      // console.log("Appending officeid string:", editForm.officeid);
     }
 
+    // 4. Files upload
     Object.keys(files).forEach((key) => {
       if (files[key]) {
         formData.append(key, files[key]);
+        // console.log(`Appending file ${key}:`, files[key].name);
       }
     });
 
-    try {
-      await dispatch(updateEmployeeDetailsThunk(formData)).unwrap();
+    // // Debug: Log all FormData entries
+    // console.log("=== FINAL FORMDATA ENTRIES ===");
+    // for (let pair of formData.entries()) {
+    //   console.log(pair[0] + ":", pair[1]);
+    // }
 
+    try {
+      // const result = await dispatch(updateEmployeeDetailsThunk(formData)).unwrap();
+      // console.log("SUCCESS Response:", result);
+      const result = await axios.post(
+        `https://namami-infotech.com/MMSalary/Employee/update_employee.php`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+          },
+        },
+      );
       setBanner({
         type: "success",
         text: "Employee updated successfully",
       });
 
       setTimeout(() => setBanner(null), 3000);
-
       dispatch(fetchEmployeesThunk());
       closeEditModal();
     } catch (err) {
-      setModalError(err);
+      console.error("ERROR Full object:", err);
+      console.error("ERROR Message:", err.message);
+      console.error("ERROR Response:", err.response?.data);
+      console.error("ERROR Status:", err.response?.status);
+
+      // Show detailed error message
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to update employee";
+      setModalError(errorMsg);
     }
   };
 
@@ -825,27 +889,6 @@ function EmployeeListPage() {
 
                 {/* Right Column */}
                 <div className="space-y-4">
-                  {/* Primary Office ID */}
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      Primary Office
-                    </label>
-                    <select
-                      value={editForm?.officeid || ""}
-                      onChange={(e) =>
-                        handleEditChange("officeid", e.target.value)
-                      }
-                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
-                    >
-                      <option value="">Select Primary Office</option>
-                      {(officeItems || []).map((office) => (
-                        <option key={office} value={office}>
-                          {office}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
                   {/* Location */}
                   <div>
                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
@@ -923,17 +966,20 @@ function EmployeeListPage() {
                 </div>
               </div>
 
+              {/* Multiple Office Access - Full Width with Primary Selection */}
               {/* Multiple Office Access - Full Width */}
               <div className="mt-5">
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">
-                  Multiple Office Access
+                  Offices Access
                 </label>
 
-                {/* 1. Selected Chips Section - Sabhi selected offices dikhayega */}
+                {/* 1. Selected Chips Section */}
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {(editForm?.multi_officeids || []).map((office) => {
+                  {(editForm?.officeid || []).map((office) => {
+                    // First office is primary
                     const isPrimary =
-                      String(editForm?.officeid) === String(office);
+                      Array.isArray(editForm?.officeid) &&
+                      editForm.officeid[0] === office;
 
                     return (
                       <div
@@ -948,21 +994,19 @@ function EmployeeListPage() {
                           {office} {isPrimary && "(Primary)"}
                         </span>
 
-                        {/* Sirf Non-Primary ko delete karne ka option */}
-                        {!isPrimary && (
-                          <button
-                            type="button"
-                            className="ml-1 hover:text-red-600 text-[#1547bd] font-bold transition-colors"
-                            onClick={() => {
-                              const updated = (
-                                editForm?.multi_officeids || []
-                              ).filter((id) => String(id) !== String(office));
-                              handleEditChange("multi_officeids", updated);
-                            }}
-                          >
-                            ✕
-                          </button>
-                        )}
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          className="ml-1 hover:text-red-600 text-[#1547bd] font-bold transition-colors"
+                          onClick={() => {
+                            const updated = (editForm?.officeid || []).filter(
+                              (id) => String(id) !== String(office),
+                            );
+                            handleEditChange("officeid", updated);
+                          }}
+                        >
+                          ✕
+                        </button>
                       </div>
                     );
                   })}
@@ -971,33 +1015,31 @@ function EmployeeListPage() {
                 {/* 2. Checkbox List */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-3 border border-slate-200 rounded-lg bg-white">
                   {(officeItems || []).map((office) => {
-                    const selectedOffices = editForm?.multi_officeids || [];
-                    const isPrimaryOffice =
-                      String(editForm?.officeid) === String(office);
+                    const selectedOffices = editForm?.officeid || [];
+                    const isChecked = selectedOffices.some(
+                      (id) => String(id) === String(office),
+                    );
 
-                    // Checkbox tabhi tick hoga jab wo array mein ho YA primary ho
-                    const isChecked =
-                      selectedOffices.some(
-                        (id) => String(id) === String(office),
-                      ) || isPrimaryOffice;
+                    const isPrimary =
+                      selectedOffices.length > 0 &&
+                      selectedOffices[0] === office;
 
                     return (
                       <label
                         key={office}
                         className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                          isPrimaryOffice
-                            ? "bg-gradient-to-r from-[#1547bd]/10 to-[#1e5ad1]/10 border border-[#1547bd]/30"
-                            : "hover:bg-[#1547bd]/5 border border-transparent"
+                          isChecked && isPrimary
+                            ? "bg-gradient-to-r from-[#1547bd]/15 to-[#1e5ad1]/15 border border-[#1547bd]/30"
+                            : isChecked
+                              ? "bg-[#1547bd]/5 border border-[#1547bd]/20"
+                              : "hover:bg-[#1547bd]/5 border border-transparent"
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          disabled={isPrimaryOffice}
                           onChange={(e) => {
-                            let updated = [...selectedOffices].map((id) =>
-                              String(id),
-                            ); // String conversion for safety
+                            let updated = [...selectedOffices];
                             const officeStr = String(office);
 
                             if (e.target.checked) {
@@ -1009,15 +1051,20 @@ function EmployeeListPage() {
                                 (id) => id !== officeStr,
                               );
                             }
-                            handleEditChange("multi_officeids", updated);
+
+                            handleEditChange("officeid", updated);
                           }}
                           className="w-4 h-4 rounded border-slate-300 text-[#1547bd] focus:ring-[#1547bd] focus:ring-2"
                         />
                         <span
-                          className={`text-sm ${isPrimaryOffice ? "font-semibold text-[#1547bd]" : "text-slate-700"}`}
+                          className={`text-sm ${
+                            isChecked && isPrimary
+                              ? "font-semibold text-[#1547bd]"
+                              : "text-slate-700"
+                          }`}
                         >
                           {office}
-                          {isPrimaryOffice && " (Primary)"}
+                          {isChecked && isPrimary && " (Primary)"}
                         </span>
                       </label>
                     );
@@ -1025,8 +1072,7 @@ function EmployeeListPage() {
                 </div>
 
                 <p className="text-xs text-slate-500 mt-2">
-                  ✅ Primary office ({editForm?.officeid}) is automatically
-                  included.
+                  ✅ First selected office is automatically the primary office
                 </p>
               </div>
 

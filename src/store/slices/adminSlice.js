@@ -21,10 +21,14 @@ export const createSupervisorThunk = createAsyncThunk(
   async (payload, thunkApi) => {
     try {
       const { token } = thunkApi.getState().auth;
+
       const data = await adminService.createSupervisor(payload, token);
-      if (data.status !== 200 && !data.success) {
+
+      // SUCCESS CHECK
+      if (!data.status && !data.success) {
         return thunkApi.rejectWithValue(data.message || "Creation failed");
       }
+
       return data;
     } catch (error) {
       return thunkApi.rejectWithValue(error.message || "Creation failed");
