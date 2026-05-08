@@ -2,28 +2,41 @@ import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import PageTitle from "../components/shared/PageTitle";
 import { fetchAttendanceByDateThunk } from "../store/slices/attendanceSlice";
+import { FiDownload } from "react-icons/fi";
 
 const HEADER_BLUE = "#1547bd";
 
-// function exportCsv(rows, suffix = "employees") {
-//   if (!rows.length) return;
-//   const keys = [...ESSENTIAL_COLUMNS.map((c) => c.key), "id"];
-//   const uniqueKeys = [...new Set(keys)];
-//   const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-//   const header = uniqueKeys.join(",");
-//   const body = rows
-//     .map((r) => uniqueKeys.map((k) => esc(r[k])).join(","))
-//     .join("\n");
-//   const blob = new Blob([`${header}\n${body}`], {
-//     type: "text/csv;charset=utf-8;",
-//   });
-//   const url = URL.createObjectURL(blob);
-//   const a = document.createElement("a");
-//   a.href = url;
-//   a.download = `${suffix}-${new Date().toISOString().slice(0, 10)}.csv`;
-//   a.click();
-//   URL.revokeObjectURL(url);
-// }
+const EXPORT = [
+  { key: "employeeid", label: "Employee ID" },
+  { key: "name", label: "Employee Name" },
+  { key: "officeid", label: "Office ID" },
+  { key: "entry_date", label: "Entry Date" },
+  { key: "entry_time", label: "Entry Time" },
+  { key: "exit_date", label: "Exit Date" },
+  { key: "exit_time", label: "Exit Time" },
+  { key: "working_hours", label: "Working Hours" },
+  // Add more columns as needed
+];
+
+function exportCsv(rows, suffix = "employees") {
+  if (!rows.length) return;
+  const keys = [...EXPORT.map((c) => c.key), "id"];
+  const uniqueKeys = [...new Set(keys)];
+  const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const header = uniqueKeys.join(",");
+  const body = rows
+    .map((r) => uniqueKeys.map((k) => esc(r[k])).join(","))
+    .join("\n");
+  const blob = new Blob([`${header}\n${body}`], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${suffix}-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function AttendancePage() {
   const dispatch = useDispatch();
@@ -79,13 +92,22 @@ function AttendancePage() {
 
   return (
     <section className="flex flex-col gap-4 overflow-hidden">
-      <div className="flex ">
-        <PageTitle
-          title="Attendance"
-          subtitle="View attendance records with entry and exit photos."
-        />
-        <button>exort to excel</button>
-      </div>
+      <div className="flex items-center justify-between">
+  <PageTitle
+    title="Attendance"
+    subtitle="View attendance records with entry and exit photos."
+  />
+
+  <button
+    type="button"
+    className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-medium hover:bg-slate-50 transition-all duration-200 flex items-center gap-1"
+    style={{ color: HEADER_BLUE }}
+    onClick={() => exportCsv(filteredRows, "employees")}
+  >
+    <FiDownload size={16} />
+    Export CSV
+  </button>
+</div>
 
       {error && (
         <div className="rounded-lg bg-rose-50 px-4 py-2 text-sm text-rose-800">
