@@ -73,7 +73,7 @@ function cellValue(row, key) {
 
 function exportCsv(rows, suffix = "admins") {
   if (!rows.length) return;
-  const keys = [...ESSENTIAL_COLUMNS.map((c) => c.key), "email"];
+  const keys = [...ALL_COLUMNS.map((c) => c.key), "email"];
   const uniqueKeys = [...new Set(keys)];
   const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const header = uniqueKeys.join(",");

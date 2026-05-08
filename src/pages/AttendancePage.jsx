@@ -5,6 +5,26 @@ import { fetchAttendanceByDateThunk } from "../store/slices/attendanceSlice";
 
 const HEADER_BLUE = "#1547bd";
 
+// function exportCsv(rows, suffix = "employees") {
+//   if (!rows.length) return;
+//   const keys = [...ESSENTIAL_COLUMNS.map((c) => c.key), "id"];
+//   const uniqueKeys = [...new Set(keys)];
+//   const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+//   const header = uniqueKeys.join(",");
+//   const body = rows
+//     .map((r) => uniqueKeys.map((k) => esc(r[k])).join(","))
+//     .join("\n");
+//   const blob = new Blob([`${header}\n${body}`], {
+//     type: "text/csv;charset=utf-8;",
+//   });
+//   const url = URL.createObjectURL(blob);
+//   const a = document.createElement("a");
+//   a.href = url;
+//   a.download = `${suffix}-${new Date().toISOString().slice(0, 10)}.csv`;
+//   a.click();
+//   URL.revokeObjectURL(url);
+// }
+
 function AttendancePage() {
   const dispatch = useDispatch();
   const { items, loading, error } = useSelector((state) => state.attendance);
@@ -59,10 +79,13 @@ function AttendancePage() {
 
   return (
     <section className="flex flex-col gap-4 overflow-hidden">
-      <PageTitle
-        title="Attendance"
-        subtitle="View attendance records with entry and exit photos."
-      />
+      <div className="flex ">
+        <PageTitle
+          title="Attendance"
+          subtitle="View attendance records with entry and exit photos."
+        />
+        <button>exort to excel</button>
+      </div>
 
       {error && (
         <div className="rounded-lg bg-rose-50 px-4 py-2 text-sm text-rose-800">
@@ -92,7 +115,18 @@ function AttendancePage() {
 
             <div className="w-40">
               <label className="mb-1 block text-xs font-bold text-slate-700">
-                Date
+                FROM
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={handleDateChange}
+                className="w-full rounded-lg border-[1.5px] border-slate-300 px-3 py-2 text-sm outline-none transition hover:border-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25"
+              />
+            </div>
+            <div className="w-40">
+              <label className="mb-1 block text-xs font-bold text-slate-700">
+                TO
               </label>
               <input
                 type="date"
@@ -145,6 +179,9 @@ function AttendancePage() {
                     Employee
                   </th>
                   <th className="px-4 py-3 font-semibold text-white">
+                    Office ID
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-white">
                     Entry Time
                   </th>
                   <th className="px-4 py-3 font-semibold text-white">
@@ -167,6 +204,9 @@ function AttendancePage() {
                     </td>
                     <td className="px-4 py-3 font-medium text-slate-900">
                       {record.name}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      {record.officeid}
                     </td>
                     <td className="px-4 py-3 text-slate-700">
                       {record.entry_date} {record.entry_time}
