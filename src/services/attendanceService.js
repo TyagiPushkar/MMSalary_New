@@ -11,9 +11,9 @@ const axiosInstance = axios.create({
 });
 
 export const attendanceService = {
-  async fetchAttendanceForOffice(officeid, date, token) {
-    const url = `/attandance/get_attandance_byofficeid.php?officeid=${officeid.trim()}&date=${date}`;
-
+  async fetchAttendanceForOffice(officeid, { from, to }, token) {
+    const url = `/attandance/get_attandance_byofficeid.php?officeid=${officeid.trim()}&fromDate=${from}&toDate=${to}`;
+    //const url = `/attandance/test.php?officeid=${officeid.trim()}&fromDate=${from}&toDate=${to}`;
     const config = {
       headers: {
         "Content-Type": "application/json",
@@ -29,8 +29,9 @@ export const attendanceService = {
     return response.data?.data ?? [];
   },
 
-  async fetchAllEmployeesAttendance(date, token) {
-    const url = `/attandance/get_all_employee_attandance.php?date=${date}`;
+  async fetchAllEmployeesAttendance({ from, to }, token) {
+    const url = `/attandance/get_all_employee_attandance.php?fromDate=${from}&toDate=${to}`;
+    // const url = `/attandance/test.php?fromDate=${from}&toDate=${to}`;
 
     const config = {
       headers: {
@@ -47,13 +48,15 @@ export const attendanceService = {
     return response.data?.data ?? [];
   },
 
-  async getAttendanceByDate({ token, user, date }) {
+  async getAttendanceByDate({ token, user, from, to }) {
     try {
-      const formattedDate = date || new Date().toISOString().split("T")[0];
+      const formattedFromDate = from || new Date().toISOString().split("T")[0];
+      const formattedToDate = to || formattedFromDate; // Use the same date if 'to' is not provided
+      // const
 
       if (user?.type === USER_TYPES.SUPER) {
         const data = await this.fetchAllEmployeesAttendance(
-          formattedDate,
+          { from: formattedFromDate, to: formattedToDate },
           token,
         );
         return { data };
@@ -71,7 +74,11 @@ export const attendanceService = {
 
       // Make parallel requests for all office IDs
       const promises = officeIds.map((id) =>
-        this.fetchAttendanceForOffice(id, formattedDate, token),
+        this.fetchAttendanceForOffice(
+          id,
+          { from: formattedFromDate, to: formattedToDate },
+          token,
+        ),
       );
 
       const results = await Promise.all(promises);

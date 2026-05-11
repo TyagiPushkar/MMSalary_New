@@ -28,7 +28,9 @@ import {
   updateEmployeeStatusThunk,
 } from "../store/slices/employeeSlice";
 import { fetchOfficesThunk } from "../store/slices/officeSlice";
+import { FaFilter, FaTimes } from "react-icons/fa";
 import axios from "axios";
+import { fetchRolesThunk } from "../store/slices/roleSlice";
 
 const HEADER_BLUE = "#1547bd";
 const HEADER_GRADIENT = "linear-gradient(135deg, #1547bd 0%, #1e5ad1 100%)";
@@ -87,6 +89,38 @@ const ALL_COLUMNS = [
   { key: "passbook_photo", label: "Passbook", type: "image", icon: FiImage },
 ];
 
+const EXPORT_COLUMNS = [
+  { key: "employeeid", label: "Employee ID" },
+  { key: "name", label: "Name" },
+  { key: "phone", label: "Phone" },
+  { key: "officeid", label: "Office ID" },
+  { key: "location", label: "Location" },
+  { key: "employee_role", label: "Role" },
+  { key: "fathers_name", label: "Father Name" },
+  { key: "dob", label: "DOB" },
+  { key: "address", label: "Address" },
+  { key: "district", label: "District" },
+  { key: "state", label: "State" },
+  { key: "pin_code", label: "Pincode" },
+  {
+    key: "aadhar_number",
+    label: "Aadhar Number",
+  },
+  { key: "pan_card", label: "PAN Card" },
+  {
+    key: "driving_license_no",
+    label: "DL Number",
+  },
+  { key: "rc_number", label: "RC Number" },
+  { key: "ac_name", label: "Account Name" },
+  { key: "ifsc", label: "IFSC" },
+  {
+    key: "account_num",
+    label: "Account Number",
+  },
+  { key: "salary", label: "Salary" },
+];
+
 function getRowKey(row, index) {
   if (row.id != null && row.id !== "") return String(row.id);
   if (row.employeeid != null && row.employeeid !== "")
@@ -102,7 +136,7 @@ function cellValue(row, key) {
 
 function exportCsv(rows, suffix = "employees") {
   if (!rows.length) return;
-  const keys = [...ALL_COLUMNS.map((c) => c.key), "id"];
+  const keys = [...EXPORT_COLUMNS.map((c) => c.key)];
   const uniqueKeys = [...new Set(keys)];
   const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const header = uniqueKeys.join(",");
@@ -148,24 +182,68 @@ function EmployeeListPage() {
 
   const [banner, setBanner] = useState(null);
   const [modalError, setModalError] = useState(null);
+  const [activeFilter, setActiveFilter] = useState(null);
+  // Filter values store karne ke liye
+  const [filters, setFilters] = useState({
+    employeeid: "",
+    name: "",
+    phone: "",
+    employee_role: "",
+    officeid: "",
+  });
+  const { roles } = useSelector((state) => state.roles);
 
   useEffect(() => {
     dispatch(fetchOfficesThunk());
   }, [dispatch]);
 
   useEffect(() => {
+    if (editModalOpen) {
+      dispatch(fetchRolesThunk());
+    }
+  }, [editModalOpen, dispatch]);
+
+  useEffect(() => {
     dispatch(fetchEmployeesThunk());
   }, [dispatch]);
 
   const filteredRows = useMemo(() => {
-    if (!quickFilter.trim()) return items;
-    const term = quickFilter.toLowerCase().trim();
-    return items.filter((emp) =>
-      Object.values(emp).some(
-        (val) => val && String(val).toLowerCase().includes(term),
-      ),
-    );
-  }, [items, quickFilter]);
+    return items.filter((emp) => {
+      // Global Search
+      const matchesQuickFilter =
+        !quickFilter.trim() ||
+        Object.values(emp).some(
+          (val) =>
+            val &&
+            String(val)
+              .toLowerCase()
+              .includes(quickFilter.toLowerCase().trim()),
+        );
+
+      // Column Filters
+      const matchesColumnFilters = Object.keys(filters).every((key) => {
+        if (!filters[key]) return true;
+
+        const empValue = String(emp[key] || "").toLowerCase();
+        const filterValue = String(filters[key]).toLowerCase();
+
+        return empValue.includes(filterValue);
+      });
+
+      return matchesQuickFilter && matchesColumnFilters;
+    });
+  }, [items, quickFilter, filters]);
+
+  const toggleFilter = (field) => {
+    setActiveFilter(activeFilter === field ? null : field);
+  };
+
+  const handleInputChange = (field, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   const currentPage = Math.min(Math.max(1, page), totalPages);
@@ -436,21 +514,6 @@ function EmployeeListPage() {
               <p className="text-sm text-slate-500">Loading employees...</p>
             </div>
           </div>
-        ) : pageRows.length === 0 ? (
-          <div className="flex items-center justify-center p-12">
-            <div className="text-center">
-              <FiUser size={48} className="mx-auto text-slate-300 mb-3" />
-              <p className="text-sm text-slate-500">No employees found.</p>
-              {quickFilter && (
-                <button
-                  onClick={() => setQuickFilter("")}
-                  className="mt-2 text-sm text-[#1547bd] hover:underline"
-                >
-                  Clear search
-                </button>
-              )}
-            </div>
-          </div>
         ) : (
           <>
             <div className="flex-1 overflow-x-auto overflow-y-auto">
@@ -465,9 +528,38 @@ function EmployeeListPage() {
                     {ESSENTIAL_COLUMNS.map((col) => (
                       <th
                         key={col.key}
-                        className={`${cellPad} text-left font-semibold whitespace-nowrap border-b border-white/20 ${col.minW}`}
+                        className={`${cellPad} text-left font-semibold whitespace-nowrap border-b border-white/20 ${col.minW} relative`}
                       >
-                        {col.label}
+                        <div className="flex items-center justify-between gap-2">
+                          <span>{col.label}</span>
+
+                          <button
+                            onClick={() => toggleFilter(col.key)}
+                            className="hover:text-gray-300 transition-colors"
+                          >
+                            {activeFilter === col.key ? (
+                              <FaTimes size={12} />
+                            ) : (
+                              <FaFilter size={12} />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Toggle Filter Input */}
+                        {activeFilter === col.key && (
+                          <div className="absolute top-full left-0 mt-1 w-full px-2 z-20">
+                            <input
+                              type="text"
+                              className="w-full p-1 text-sm text-black rounded border border-gray-300 shadow-lg outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder={`Search ${col.label}...`}
+                              value={filters[col.key] || ""}
+                              onChange={(e) =>
+                                handleInputChange(col.key, e.target.value)
+                              }
+                              autoFocus
+                            />
+                          </div>
+                        )}
                       </th>
                     ))}
                     <th
@@ -483,76 +575,88 @@ function EmployeeListPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white">
-                  {pageRows.map((row, idx) => {
-                    const globalIndex = (currentPage - 1) * pageSize + idx + 1;
-                    const rk = getRowKey(row, idx);
-                    const isActive = row.status == 1;
-
-                    return (
-                      <tr
-                        key={`${rk}-${globalIndex}`}
-                        className={`border-b border-slate-100 transition-all duration-150 ${
-                          isActive
-                            ? "hover:bg-slate-50"
-                            : "bg-slate-50/40 hover:bg-slate-50/60"
-                        }`}
+                  {pageRows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={ESSENTIAL_COLUMNS.length + 3}
+                        className="py-10 text-center text-sm text-slate-500"
                       >
-                        <td
-                          className={`${cellPad} text-center whitespace-nowrap`}
+                        No employees found.
+                      </td>
+                    </tr>
+                  ) : (
+                    pageRows.map((row, idx) => {
+                      const globalIndex =
+                        (currentPage - 1) * pageSize + idx + 1;
+                      const rk = getRowKey(row, idx);
+                      const isActive = row.status == 1;
+
+                      return (
+                        <tr
+                          key={`${rk}-${globalIndex}`}
+                          className={`border-b border-slate-100 transition-all duration-150 ${
+                            isActive
+                              ? "hover:bg-slate-50"
+                              : "bg-slate-50/40 hover:bg-slate-50/60"
+                          }`}
                         >
-                          <button
-                            onClick={() => openDetailView(row)}
-                            className="rounded-lg p-2 text-sm transition-all duration-200 hover:bg-blue-100 hover:scale-105"
-                            style={{ color: HEADER_BLUE }}
-                            title="View employee details"
-                          >
-                            <FiEye size={18} />
-                          </button>
-                        </td>
-                        {ESSENTIAL_COLUMNS.map((col) => (
                           <td
-                            key={col.key}
-                            className={`${cellPad} text-slate-700 whitespace-nowrap max-w-[220px] truncate`}
-                            title={cellValue(row, col.key)}
+                            className={`${cellPad} text-center whitespace-nowrap`}
                           >
-                            {col.key === "name" ? (
-                              <div className="flex items-center gap-2">
-                                {row.photo && (
-                                  <img
-                                    src={getFullImageUrl(row.photo)}
-                                    className="w-7 h-7 rounded-full object-cover"
-                                  />
-                                )}
-                                <span className="font-medium">
-                                  {cellValue(row, col.key)}
-                                </span>
-                              </div>
-                            ) : (
-                              cellValue(row, col.key)
-                            )}
+                            <button
+                              onClick={() => openDetailView(row)}
+                              className="rounded-lg p-2 text-sm transition-all duration-200 hover:bg-blue-100 hover:scale-105"
+                              style={{ color: HEADER_BLUE }}
+                              title="View employee details"
+                            >
+                              <FiEye size={18} />
+                            </button>
                           </td>
-                        ))}
-                        <td className={`${cellPad} whitespace-nowrap`}>
-                          <StatusToggle
-                            isActive={isActive}
-                            onToggle={() => handleStatusToggle(row)}
-                            disabled={statusUpdateLoading}
-                            loading={statusUpdateLoading}
-                          />
-                        </td>
-                        <td className={`${cellPad} whitespace-nowrap`}>
-                          <button
-                            onClick={() => openEditModal(row)}
-                            className="rounded-lg p-2 text-sm transition-all duration-200 hover:bg-blue-100 hover:scale-105"
-                            style={{ color: HEADER_BLUE }}
-                            title="Edit employee details"
-                          >
-                            <FiEdit2 size={18} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          {ESSENTIAL_COLUMNS.map((col) => (
+                            <td
+                              key={col.key}
+                              className={`${cellPad} text-slate-700 whitespace-nowrap max-w-[220px] truncate`}
+                              title={cellValue(row, col.key)}
+                            >
+                              {col.key === "name" ? (
+                                <div className="flex items-center gap-2">
+                                  {row.photo && (
+                                    <img
+                                      src={getFullImageUrl(row.photo)}
+                                      className="w-7 h-7 rounded-full object-cover"
+                                    />
+                                  )}
+                                  <span className="font-medium">
+                                    {cellValue(row, col.key)}
+                                  </span>
+                                </div>
+                              ) : (
+                                cellValue(row, col.key)
+                              )}
+                            </td>
+                          ))}
+                          <td className={`${cellPad} whitespace-nowrap`}>
+                            <StatusToggle
+                              isActive={isActive}
+                              onToggle={() => handleStatusToggle(row)}
+                              disabled={statusUpdateLoading}
+                              loading={statusUpdateLoading}
+                            />
+                          </td>
+                          <td className={`${cellPad} whitespace-nowrap`}>
+                            <button
+                              onClick={() => openEditModal(row)}
+                              className="rounded-lg p-2 text-sm transition-all duration-200 hover:bg-blue-100 hover:scale-105"
+                              style={{ color: HEADER_BLUE }}
+                              title="Edit employee details"
+                            >
+                              <FiEdit2 size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -743,13 +847,18 @@ function EmployeeListPage() {
                                 alt={col.label}
                                 className="h-32 w-full object-cover rounded-lg transition-transform duration-300"
                               />
-                              {hoveredImage === col.key && (
-                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-lg">
-                                  <img
-                                    src={imageUrl}
-                                    alt={col.label}
-                                    className="max-w-full max-h-full object-contain p-2"
-                                  />
+                              {/* Hover Image Preview */}
+                              {hoveredImage && (
+                                <div className="fixed inset-0 z-[999] flex items-center justify-center pointer-events-none">
+                                  <div className="bg-black/50 p-1 rounded-2xl shadow-2xl backdrop-blur-sm">
+                                    <img
+                                      src={getFullImageUrl(
+                                        detailRow?.[hoveredImage],
+                                      )}
+                                      alt="Preview"
+                                      className="w-[300px] h-[300px] object-contain rounded-xl bg-white"
+                                    />
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -848,14 +957,21 @@ function EmployeeListPage() {
                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                       Role
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={editForm?.employee_role || ""}
                       onChange={(e) =>
                         handleEditChange("employee_role", e.target.value)
                       }
                       className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
-                    />
+                    >
+                      <option value="">Select Role</option>
+
+                      {roles?.map((role) => (
+                        <option key={role.role_id} value={role.role_name}>
+                          {role.role_name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Father's Name */}

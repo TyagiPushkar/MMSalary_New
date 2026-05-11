@@ -19,13 +19,14 @@ import { attendanceService } from "../../services/attendanceService";
 
 export const fetchAttendanceByDateThunk = createAsyncThunk(
   "attendance/fetchByDate",
-  async ({ date }, thunkApi) => {
+  async ({ fromdate, todate }, thunkApi) => {
     try {
       const { user, token } = thunkApi.getState().auth;
       const result = await attendanceService.getAttendanceByDate({
         token,
         user,
-        date,
+        from: fromdate,
+        to: todate,
       });
       // console.log("pardeeep bhai", date, ":", result.data);
       return result.data || [];
