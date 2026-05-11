@@ -17,6 +17,7 @@ const HEADER_BLUE = "#1547bd";
 
 // Essential columns only for clean UI
 const ESSENTIAL_COLUMNS = [
+  {key: "employeeid", label: "Employee ID", minW: "min-w-[100px]" },
   { key: "admin_name", label: "Admin Name", minW: "min-w-[130px]" },
   { key: "email", label: "Email", minW: "min-w-[140px]" },
   { key: "phone", label: "Phone", minW: "min-w-[90px]" },
