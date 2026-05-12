@@ -672,6 +672,33 @@ function EmployeeListPage() {
                     )} of ${filteredRows.length} employees`}
               </span>
               <div className="flex items-center gap-3">
+                <select
+                  value={currentPage}
+                  onChange={(e) => setPage(Number(e.target.value))}
+                  className="
+                              rounded-lg
+                              border border-slate-300
+                              bg-white
+                              px-3 py-1.5
+                              text-sm font-medium
+                              text-slate-700
+                              shadow-sm
+                              outline-none
+                              transition-all duration-200
+                              hover:border-slate-400
+                              hover:bg-slate-50
+                              focus:border-blue-500
+                              focus:ring-2
+                              focus:ring-blue-500/20
+                              cursor-pointer
+                            "
+                >
+                  {Array.from({ length: totalPages }, (_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      Page {i + 1}
+                    </option>
+                  ))}
+                </select>
                 <button
                   disabled={currentPage <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}

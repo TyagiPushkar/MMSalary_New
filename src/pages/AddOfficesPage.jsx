@@ -10,6 +10,7 @@ import {
 // import officeService from "../services/officeService";
 import { FiEdit2 } from "react-icons/fi";
 import StatusToggle from "../components/shared/StatusToggle";
+import { FaFilter, FaTimes } from "react-icons/fa";
 
 const HEADER_BLUE = "#1547bd";
 
@@ -32,10 +33,83 @@ export const AddOfficesPage = () => {
     lon: "",
   });
   const [banner, setBanner] = useState(null);
+  const [searchText, setSearchText] = useState("");
+
+  // Kaunsa filter open hai
+  const [activeFilter, setActiveFilter] = useState(null);
+
+  // Column filters
+  const [filters, setFilters] = useState({
+    id: "",
+    office_id: "",
+    lat: "",
+    lon: "",
+    active_status: "",
+  });
 
   useEffect(() => {
     dispatch(fetchAllOfficesThunk());
   }, [dispatch]);
+
+  const toggleFilter = (field) => {
+    setActiveFilter(activeFilter === field ? null : field);
+  };
+
+  const handleInputChange = (field, value) => {
+    setFilters({ ...filters, [field]: value });
+  };
+
+  const filteredData = allData.filter((office) => {
+    // Top Search
+    const matchesSearch =
+      searchText === "" ||
+      String(office.office_id || office.office_name || "")
+        .toLowerCase()
+        .includes(searchText.toLowerCase());
+
+    // Column Filters
+    const matchesFilters = Object.keys(filters).every((key) => {
+      if (!filters[key]) return true;
+
+      const officeValue = String(office[key] || "").toLowerCase();
+
+      return officeValue.includes(filters[key].toLowerCase());
+    });
+
+    return matchesSearch && matchesFilters;
+  });
+
+  const renderHeader = (label, field) => (
+    <th className="px-3 py-2 text-left font-semibold whitespace-nowrap border-b border-white/20 relative">
+      <div className="flex items-center justify-between gap-2">
+        <span>{label}</span>
+
+        <button
+          onClick={() => toggleFilter(field)}
+          className="hover:text-gray-300 transition-colors"
+        >
+          {activeFilter === field ? (
+            <FaTimes size={12} />
+          ) : (
+            <FaFilter size={12} />
+          )}
+        </button>
+      </div>
+
+      {activeFilter === field && (
+        <div className="absolute top-full left-0 mt-1 w-full px-1 z-20">
+          <input
+            type="text"
+            className="w-full rounded border border-gray-300 px-2 py-1 text-xs text-black shadow-lg outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder={`Search ${label}`}
+            value={filters[field]}
+            onChange={(e) => handleInputChange(field, e.target.value)}
+            autoFocus
+          />
+        </div>
+      )}
+    </th>
+  );
 
   const openAddModal = () => {
     setEditingOffice(null);
@@ -137,11 +211,11 @@ export const AddOfficesPage = () => {
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil(allData.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
 
   const currentPage = Math.min(Math.max(1, page), totalPages);
 
-  const pageRows = allData.slice(
+  const pageRows = filteredData.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
@@ -162,6 +236,13 @@ export const AddOfficesPage = () => {
         >
           + Add Office
         </button>
+        <input
+          type="text"
+          placeholder="Search offices..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          className="ml-2 rounded-lg border border-slate-300 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
       </div>
 
       {banner && !modalOpen ? (
@@ -185,76 +266,73 @@ export const AddOfficesPage = () => {
           <div className="flex items-center justify-center p-8">
             <p className="text-sm text-rose-600">{error}</p>
           </div>
-        ) : allData.length === 0 ? (
-          <div className="flex items-center justify-center p-8">
-            <p className="text-sm text-slate-500">No offices found.</p>
-          </div>
         ) : (
           <>
             <div className="overflow-x-auto overflow-y-auto">
               <table className="w-full border-collapse text-sm">
                 <thead className="sticky top-0 z-[1] shadow-sm">
                   <tr style={{ backgroundColor: HEADER_BLUE, color: "#fff" }}>
-                    <th className="px-3 py-2 text-left font-semibold whitespace-nowrap border-b border-white/20 w-20">
-                      ID
-                    </th>
-                    <th className="px-3 py-2 text-left font-semibold whitespace-nowrap border-b border-white/20 min-w-[200px]">
-                      Office Name
-                    </th>
-                    <th className="px-3 py-2 text-left font-semibold whitespace-nowrap border-b border-white/20 min-w-[120px]">
-                      Latitude
-                    </th>
-                    <th className="px-3 py-2 text-left font-semibold whitespace-nowrap border-b border-white/20 min-w-[120px]">
-                      Longitude
-                    </th>
-                    <th className="px-3 py-2 text-left font-semibold whitespace-nowrap border-b border-white/20 min-w-[120px]">
-                      Status
-                    </th>
+                    {renderHeader("ID", "id")}
+                    {renderHeader("Office Name", "office_id")}
+                    {renderHeader("Latitude", "lat")}
+                    {renderHeader("Longitude", "lon")}
+                    {renderHeader("Status", "active_status")}
                     <th className="px-3 py-2 text-left font-semibold whitespace-nowrap border-b border-white/20 w-20">
                       Action
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white">
-                  {pageRows.map((office, idx) => (
-                    <tr
-                      key={office.id || idx}
-                      className="border-b border-slate-100 hover:bg-slate-50/80 transition"
-                    >
-                      <td className="px-3 py-2 text-slate-800 whitespace-nowrap text-xs">
-                        {office.id || "—"}
-                      </td>
-                      <td className="px-3 py-2 text-slate-800 whitespace-nowrap max-w-[200px] truncate text-xs">
-                        {office.office_id || office.office_name || "—"}
-                      </td>
-                      <td className="px-3 py-2 text-slate-800 whitespace-nowrap text-xs">
-                        {office.lat || "—"}
-                      </td>
-                      <td className="px-3 py-2 text-slate-800 whitespace-nowrap text-xs">
-                        {office.lon || "—"}
-                      </td>
-                      {/* Status Toggle Slide Button */}
-                      <td className="px-3 py-2 text-center whitespace-nowrap">
-                        <StatusToggle
-                          isActive={office.active_status == 1}
-                          onToggle={() => handleStatusToggle(office)}
-                          disabled={statusUpdateLoading}
-                          loading={statusUpdateLoading}
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-center whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(office)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-blue-100"
-                          style={{ color: HEADER_BLUE }}
-                          title="Edit office"
-                        >
-                          <FiEdit2 size={16} />
-                        </button>
+                  {pageRows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan="6"
+                        className="py-8 text-center text-sm text-slate-500"
+                      >
+                        No offices found.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    pageRows.map((office, idx) => (
+                      <tr
+                        key={office.id || idx}
+                        className="border-b border-slate-100 hover:bg-slate-50/80 transition"
+                      >
+                        <td className="px-3 py-2 text-slate-800 whitespace-nowrap text-xs">
+                          {office.id || "—"}
+                        </td>
+                        <td className="px-3 py-2 text-slate-800 whitespace-nowrap max-w-[200px] truncate text-xs">
+                          {office.office_id || office.office_name || "—"}
+                        </td>
+                        <td className="px-3 py-2 text-slate-800 whitespace-nowrap text-xs">
+                          {office.lat || "—"}
+                        </td>
+                        <td className="px-3 py-2 text-slate-800 whitespace-nowrap text-xs">
+                          {office.lon || "—"}
+                        </td>
+                        {/* Status Toggle Slide Button */}
+                        <td className="px-3 py-2 text-center whitespace-nowrap">
+                          <StatusToggle
+                            isActive={office.active_status == 1}
+                            onToggle={() => handleStatusToggle(office)}
+                            disabled={statusUpdateLoading}
+                            loading={statusUpdateLoading}
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-center whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(office)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-blue-100"
+                            style={{ color: HEADER_BLUE }}
+                            title="Edit office"
+                          >
+                            <FiEdit2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -263,15 +341,39 @@ export const AddOfficesPage = () => {
               style={{ backgroundColor: HEADER_BLUE, color: "#fff" }}
             >
               <span>
-                {allData.length === 0
+                {filteredData.length === 0
                   ? "No rows"
                   : `Showing ${(currentPage - 1) * pageSize + 1}–${Math.min(
                       currentPage * pageSize,
-                      allData.length,
-                    )} of ${allData.length}`}
+                      filteredData.length,
+                    )} of ${filteredData.length}`}
               </span>
 
               <div className="flex items-center gap-2">
+                <select
+                  value={currentPage}
+                  onChange={(e) => setPage(Number(e.target.value))}
+                  className="rounded-md border border-white/30
+                bg-white/10
+                px-3 py-1.5
+                text-xs font-medium
+                text-white
+                outline-none
+                backdrop-blur-sm
+                transition-all
+                hover:bg-white/20
+                focus:border-white
+                focus:ring-2
+                focus:ring-white/30
+                cursor-pointer
+                "
+                >
+                  {Array.from({ length: totalPages }, (_, i) => (
+                    <option key={i + 1} value={i + 1} className="text-black">
+                      Page {i + 1}
+                    </option>
+                  ))}
+                </select>
                 <button
                   type="button"
                   disabled={currentPage <= 1}

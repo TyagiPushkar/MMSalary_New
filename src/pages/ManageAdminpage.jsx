@@ -12,12 +12,13 @@ import {
 import { fetchOfficesThunk } from "../store/slices/officeSlice";
 import { fetchEmployeesThunk } from "../store/slices/employeeSlice";
 import axios from "axios";
+import { FaFilter, FaTimes } from "react-icons/fa";
 
 const HEADER_BLUE = "#1547bd";
 
 // Essential columns only for clean UI
 const ESSENTIAL_COLUMNS = [
-  {key: "employeeid", label: "Employee ID", minW: "min-w-[100px]" },
+  { key: "employeeid", label: "Employee ID", minW: "min-w-[100px]" },
   { key: "admin_name", label: "Admin Name", minW: "min-w-[130px]" },
   { key: "email", label: "Email", minW: "min-w-[140px]" },
   { key: "phone", label: "Phone", minW: "min-w-[90px]" },
@@ -46,6 +47,7 @@ const ALL_COLUMNS = [
 //All columns for edit view
 const EDITABLE_COLUMNS = [
   // { key: "id", label: "ID" },
+  { key: "employeeid", label: "Employee ID" },
   { key: "admin_name", label: "Admin Name" },
   { key: "phone", label: "Phone" },
   { key: "email", label: "Email" },
@@ -143,6 +145,17 @@ function ManageAdminPage() {
     // station_type: editFormData.station_type || "",
   });
 
+  const [activeFilter, setActiveFilter] = useState(null);
+
+  const [filters, setFilters] = useState({
+    employeeid: "",
+    admin_name: "",
+    email: "",
+    phone: "",
+    officeid: "",
+    active_status: "",
+  });
+
   // Add debounce hook
   function useDebounce(value, delay) {
     const [debouncedValue, setDebouncedValue] = useState(value);
@@ -204,6 +217,17 @@ function ManageAdminPage() {
     // dispatch(fetchEmployeesThunk());
   }, [dispatch]);
 
+  const toggleFilter = (field) => {
+    setActiveFilter(activeFilter === field ? null : field);
+  };
+
+  const handleInputChange = (field, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
   // Filter employees based on search
   const filteredEmployees = useMemo(() => {
     if (
@@ -236,16 +260,28 @@ function ManageAdminPage() {
   }, [employeesNotSupervisor, debouncedEmployeeSearch]);
 
   const filteredRows = useMemo(() => {
-    const q = quickFilter.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((row) =>
-      Object.values(row).some((v) =>
-        String(v ?? "")
-          .toLowerCase()
-          .includes(q),
-      ),
-    );
-  }, [items, quickFilter]);
+    return items.filter((row) => {
+      // Top Search
+      const quickMatch =
+        !quickFilter ||
+        Object.values(row).some((v) =>
+          String(v ?? "")
+            .toLowerCase()
+            .includes(quickFilter.toLowerCase()),
+        );
+
+      // Column Filters
+      const columnMatch = Object.keys(filters).every((key) => {
+        if (!filters[key]) return true;
+
+        const rowValue = String(row[key] || "").toLowerCase();
+
+        return rowValue.includes(filters[key].toLowerCase());
+      });
+
+      return quickMatch && columnMatch;
+    });
+  }, [items, quickFilter, filters]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   const currentPage = Math.min(Math.max(1, page), totalPages);
@@ -543,6 +579,40 @@ function ManageAdminPage() {
     }
   };
 
+  const renderHeader = (label, field, minW = "") => (
+    <th
+      className={`px-2 py-2 text-left font-semibold whitespace-nowrap border-b border-white/20 relative ${minW}`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span>{label}</span>
+
+        <button
+          onClick={() => toggleFilter(field)}
+          className="hover:text-gray-300 transition-colors"
+        >
+          {activeFilter === field ? (
+            <FaTimes size={12} />
+          ) : (
+            <FaFilter size={12} />
+          )}
+        </button>
+      </div>
+
+      {activeFilter === field && (
+        <div className="absolute top-full left-0 mt-1 w-full px-1 z-20">
+          <input
+            type="text"
+            placeholder={`Search ${label}`}
+            value={filters[field]}
+            onChange={(e) => handleInputChange(field, e.target.value)}
+            className="w-full rounded border border-gray-300 px-2 py-1 text-xs text-black shadow-lg outline-none focus:ring-2 focus:ring-blue-500"
+            autoFocus
+          />
+        </div>
+      )}
+    </th>
+  );
+
   return (
     <section className="flex flex-col gap-4 overflow-hidden">
       <PageTitle
@@ -641,10 +711,6 @@ function ManageAdminPage() {
           <div className="flex items-center justify-center p-8">
             <p className="text-sm text-slate-500">Loading admins…</p>
           </div>
-        ) : pageRows.length === 0 ? (
-          <div className="flex items-center justify-center p-8">
-            <p className="text-sm text-slate-500">No admins found.</p>
-          </div>
         ) : (
           <>
             <div className="flex-1 overflow-x-auto overflow-y-auto">
@@ -657,14 +723,9 @@ function ManageAdminPage() {
                     >
                       View
                     </th>
-                    {ESSENTIAL_COLUMNS.map((col) => (
-                      <th
-                        key={col.key}
-                        className={`px-2 py-2 text-left font-semibold whitespace-nowrap border-b border-white/20 ${col.minW}`}
-                      >
-                        {col.label}
-                      </th>
-                    ))}
+                    {ESSENTIAL_COLUMNS.map((col) =>
+                      renderHeader(col.label, col.key, col.minW),
+                    )}
                     <th
                       className="px-2 py-2 text-left font-semibold whitespace-nowrap border-b border-white/20 w-10"
                       title="Reset admin mobile"
@@ -683,75 +744,87 @@ function ManageAdminPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white">
-                  {pageRows.map((row, idx) => {
-                    const globalIndex = (currentPage - 1) * pageSize + idx + 1;
-                    const rk = getRowKey(row, idx);
-                    const isActive = row.active_status == 1;
-
-                    return (
-                      <tr
-                        key={`${rk}-${globalIndex}`}
-                        className={`border-b border-slate-100 transition ${
-                          isActive
-                            ? "hover:bg-slate-50/80"
-                            : "bg-slate-50/40 hover:bg-slate-50/60"
-                        }`}
+                  {pageRows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan="9"
+                        className="py-8 text-center text-sm text-slate-500"
                       >
-                        <td className="px-2 py-2 text-center whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => openDetailView(row)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-blue-100"
-                            style={{ color: HEADER_BLUE }}
-                            title="View admin details"
-                          >
-                            <FiEye size={16} />
-                          </button>
-                        </td>
-                        {ESSENTIAL_COLUMNS.map((col) => (
-                          <td
-                            key={col.key}
-                            className="px-2 py-2 text-slate-800 whitespace-nowrap max-w-[200px] truncate text-xs"
-                            title={cellValue(row, col.key)}
-                          >
-                            {cellValue(row, col.key)}
+                        No admins found.
+                      </td>
+                    </tr>
+                  ) : (
+                    pageRows.map((row, idx) => {
+                      const globalIndex =
+                        (currentPage - 1) * pageSize + idx + 1;
+                      const rk = getRowKey(row, idx);
+                      const isActive = row.active_status == 1;
+
+                      return (
+                        <tr
+                          key={`${rk}-${globalIndex}`}
+                          className={`border-b border-slate-100 transition ${
+                            isActive
+                              ? "hover:bg-slate-50/80"
+                              : "bg-slate-50/40 hover:bg-slate-50/60"
+                          }`}
+                        >
+                          <td className="px-2 py-2 text-center whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => openDetailView(row)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-blue-100"
+                              style={{ color: HEADER_BLUE }}
+                              title="View admin details"
+                            >
+                              <FiEye size={16} />
+                            </button>
                           </td>
-                        ))}
-                        <td className="px-2 py-2 text-center whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => handleResetMobile(row)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition hover:bg-blue-100"
-                            style={{ color: HEADER_BLUE }}
-                            title="Reset admin mobile"
-                          >
-                            <FiRefreshCw size={16} />
-                          </button>
-                        </td>
-                        <td className="px-2 py-2 text-center whitespace-nowrap">
-                          <StatusToggle
-                            isActive={isActive}
-                            onToggle={() => handleStatusToggle(row)}
-                            disabled={statusUpdateLoading}
-                            loading={statusUpdateLoading}
-                          />
-                        </td>
-                        <td className="px-2 py-2 whitespace-nowrap text-center">
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(row)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-blue-100"
-                            style={{
-                              color: HEADER_BLUE,
-                            }}
-                            title="Edit admin details"
-                          >
-                            <FiEdit2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          {ESSENTIAL_COLUMNS.map((col) => (
+                            <td
+                              key={col.key}
+                              className="px-2 py-2 text-slate-800 whitespace-nowrap max-w-[200px] truncate text-xs"
+                              title={cellValue(row, col.key)}
+                            >
+                              {cellValue(row, col.key)}
+                            </td>
+                          ))}
+                          <td className="px-2 py-2 text-center whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => handleResetMobile(row)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition hover:bg-blue-100"
+                              style={{ color: HEADER_BLUE }}
+                              title="Reset admin mobile"
+                            >
+                              <FiRefreshCw size={16} />
+                            </button>
+                          </td>
+                          <td className="px-2 py-2 text-center whitespace-nowrap">
+                            <StatusToggle
+                              isActive={isActive}
+                              onToggle={() => handleStatusToggle(row)}
+                              disabled={statusUpdateLoading}
+                              loading={statusUpdateLoading}
+                            />
+                          </td>
+                          <td className="px-2 py-2 whitespace-nowrap text-center">
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(row)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-blue-100"
+                              style={{
+                                color: HEADER_BLUE,
+                              }}
+                              title="Edit admin details"
+                            >
+                              <FiEdit2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -769,6 +842,30 @@ function ManageAdminPage() {
                     )} of ${filteredRows.length}`}
               </span>
               <div className="flex items-center gap-1">
+                <select
+                  value={currentPage}
+                  onChange={(e) => setPage(Number(e.target.value))}
+                  className="rounded-md border border-white/30
+                bg-white/10
+                px-3 py-1.5
+                text-xs font-medium
+                text-white
+                outline-none
+                backdrop-blur-sm
+                transition-all
+                hover:bg-white/20
+                focus:border-white
+                focus:ring-2
+                focus:ring-white/30
+                cursor-pointer
+                "
+                >
+                  {Array.from({ length: totalPages }, (_, i) => (
+                    <option key={i + 1} value={i + 1} className="text-black">
+                      Page {i + 1}
+                    </option>
+                  ))}
+                </select>
                 <button
                   type="button"
                   disabled={currentPage <= 1}

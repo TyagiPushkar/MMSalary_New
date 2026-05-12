@@ -19,6 +19,30 @@ const EXPORT = [
   // Add more columns as needed
 ];
 
+const calculateHours = (entry, exit) => {
+  if (!entry || !exit) return "00:00";
+
+  const start = new Date(`2024-01-01T${entry}`);
+  const end = new Date(`2024-01-01T${exit}`);
+
+  let diffMs = end - start;
+
+  // Overnight shift support
+  if (diffMs < 0) {
+    diffMs += 24 * 60 * 60 * 1000;
+  }
+
+  const totalMinutes = Math.floor(diffMs / 1000 / 60);
+
+  const hours = Math.floor(totalMinutes / 60)
+    .toString()
+    .padStart(2, "0");
+
+  const minutes = (totalMinutes % 60).toString().padStart(2, "0");
+
+  return `${hours}:${minutes}`;
+};
+
 function exportCsv(rows, suffix = "employees") {
   if (!rows.length) return;
   const keys = [...EXPORT.map((c) => c.key)];
@@ -26,7 +50,28 @@ function exportCsv(rows, suffix = "employees") {
   const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const header = uniqueKeys.join(",");
   const body = rows
-    .map((r) => uniqueKeys.map((k) => esc(r[k])).join(","))
+    .map((r) =>
+      uniqueKeys
+        .map((k) => {
+          let value = r[k];
+
+          if (k === "working_hours") {
+            value =
+              r.working_hours &&
+              r.working_hours !== "00:00" &&
+              r.working_hours !== "00:00:00"
+                ? r.working_hours
+                : calculateHours(r.entry_time, r.exit_time);
+          }
+
+          if (k === "entry_date" || k === "exit_date") {
+            value = value ? formatDate(value) : "";
+          }
+
+          return esc(value);
+        })
+        .join(","),
+    )
     .join("\n");
   const blob = new Blob([`${header}\n${body}`], {
     type: "text/csv;charset=utf-8;",
@@ -38,6 +83,18 @@ function exportCsv(rows, suffix = "employees") {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return "—";
+
+  const d = new Date(dateStr);
+
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+
+  return `${day}/${month}/${year}`;
+};
 
 function AttendancePage() {
   const dispatch = useDispatch();
@@ -73,17 +130,26 @@ function AttendancePage() {
   // Filter data by multiple fields on frontend
   const filteredData = useMemo(() => {
     return items.filter((record) => {
-      // Ye check karega ki kya record har us filter se match karta hai jo user ne dala hai
-      return Object.keys(filters).every((key) => {
-        if (!filters[key]) return true; // Agar filter khali hai to skip karo
+      // Main search by employee name
+      const matchesSearch =
+        !appliedName ||
+        String(record.name || "")
+          .toLowerCase()
+          .includes(appliedName.toLowerCase());
+
+      // Column filters
+      const matchesFilters = Object.keys(filters).every((key) => {
+        if (!filters[key]) return true;
 
         const recordValue = String(record[key] || "").toLowerCase();
         const filterValue = String(filters[key]).toLowerCase();
 
         return recordValue.includes(filterValue);
       });
+
+      return matchesSearch && matchesFilters;
     });
-  }, [items, filters]); // 'filters' dependency zaroori hai live update ke liye
+  }, [items, filters, appliedName]);
 
   const filteredRows = useMemo(() => {
     return filteredData.map((record) => ({
@@ -107,10 +173,22 @@ function AttendancePage() {
   };
 
   const handleReset = () => {
+    const today = new Date().toISOString().split("T")[0];
+
     setSearchName("");
     setAppliedName("");
-    setSelectedDate(new Date().toISOString().split("T")[0]);
-    setPage(1); // ✅ reset page
+    setSelectedDate(today);
+    setToDate(today);
+
+    setFilters({
+      employeeid: "",
+      name: "",
+      officeid: "",
+      entry_time: "",
+      exit_time: "",
+    });
+
+    setPage(1);
   };
 
   const handleDateChange = (e) => {
@@ -125,30 +203,6 @@ function AttendancePage() {
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
-
-  const calculateHours = (entry, exit) => {
-    if (!entry || !exit) return "00:00";
-
-    const start = new Date(`2024-01-01T${entry}`);
-    const end = new Date(`2024-01-01T${exit}`);
-
-    let diffMs = end - start;
-
-    // Overnight shift support
-    if (diffMs < 0) {
-      diffMs += 24 * 60 * 60 * 1000;
-    }
-
-    const totalMinutes = Math.floor(diffMs / 1000 / 60);
-
-    const hours = Math.floor(totalMinutes / 60)
-      .toString()
-      .padStart(2, "0");
-
-    const minutes = (totalMinutes % 60).toString().padStart(2, "0");
-
-    return `${hours}:${minutes}`;
-  };
 
   const renderHeader = (label, field, inputType = "text") => (
     <th className="px-4 py-3 font-semibold text-white relative">
@@ -194,7 +248,7 @@ function AttendancePage() {
           type="button"
           className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-medium hover:bg-slate-50 transition-all duration-200 flex items-center gap-1"
           style={{ color: HEADER_BLUE }}
-          onClick={() => exportCsv(filteredRows, "employees")}
+          onClick={() => exportCsv(filteredData, "employees")}
         >
           <FiDownload size={16} />
           Export CSV
@@ -329,11 +383,13 @@ function AttendancePage() {
                         </td>
 
                         <td className="px-4 py-3 text-slate-700">
-                          {record.entry_date} {record.entry_time}
+                          {formatDate(record.entry_date)} {record.entry_time}
                         </td>
 
                         <td className="px-4 py-3 text-slate-700">
-                          {record.exit_date} {record.exit_time}
+                          {record.exit_date
+                            ? `${formatDate(record.exit_date)} ${record.exit_time || ""}`
+                            : "N/A"}
                         </td>
 
                         <td className="px-4 py-3">
@@ -399,6 +455,30 @@ function AttendancePage() {
           </span>
 
           <div className="flex items-center gap-2">
+            <select
+              value={currentPage}
+              onChange={(e) => setPage(Number(e.target.value))}
+              className="rounded-md border border-white/30
+                bg-white/10
+                px-3 py-1.5
+                text-xs font-medium
+                text-white
+                outline-none
+                backdrop-blur-sm
+                transition-all
+                hover:bg-white/20
+                focus:border-white
+                focus:ring-2
+                focus:ring-white/30
+                cursor-pointer
+                "
+            >
+              {Array.from({ length: totalPages }, (_, i) => (
+                <option key={i + 1} value={i + 1} className="text-black">
+                  Page {i + 1}
+                </option>
+              ))}
+            </select>
             <button
               type="button"
               disabled={currentPage <= 1}
