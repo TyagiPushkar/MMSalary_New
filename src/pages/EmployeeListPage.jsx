@@ -89,38 +89,6 @@ const ALL_COLUMNS = [
   { key: "passbook_photo", label: "Passbook", type: "image", icon: FiImage },
 ];
 
-const EXPORT_COLUMNS = [
-  { key: "employeeid", label: "Employee ID" },
-  { key: "name", label: "Name" },
-  { key: "phone", label: "Phone" },
-  { key: "officeid", label: "Office ID" },
-  { key: "location", label: "Location" },
-  { key: "employee_role", label: "Role" },
-  { key: "fathers_name", label: "Father Name" },
-  { key: "dob", label: "DOB" },
-  { key: "address", label: "Address" },
-  { key: "district", label: "District" },
-  { key: "state", label: "State" },
-  { key: "pin_code", label: "Pincode" },
-  {
-    key: "aadhar_number",
-    label: "Aadhar Number",
-  },
-  { key: "pan_card", label: "PAN Card" },
-  {
-    key: "driving_license_no",
-    label: "DL Number",
-  },
-  { key: "rc_number", label: "RC Number" },
-  { key: "ac_name", label: "Account Name" },
-  { key: "ifsc", label: "IFSC" },
-  {
-    key: "account_num",
-    label: "Account Number",
-  },
-  { key: "salary", label: "Salary" },
-];
-
 function getRowKey(row, index) {
   if (row.id != null && row.id !== "") return String(row.id);
   if (row.employeeid != null && row.employeeid !== "")
@@ -134,9 +102,9 @@ function cellValue(row, key) {
   return String(v);
 }
 
-function exportCsv(rows, suffix = "employees") {
+function exportCsv(rows, columns, suffix = "employees") {
   if (!rows.length) return;
-  const keys = [...EXPORT_COLUMNS.map((c) => c.key)];
+  const keys = [...columns.map((c) => c.key)];
   const uniqueKeys = [...new Set(keys)];
   const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const header = uniqueKeys.join(",");
@@ -433,6 +401,37 @@ function EmployeeListPage() {
     if (path.startsWith("http")) return path;
     return `https://namami-infotech.com/MMSalary/uploads/${path}`;
   };
+  const EXPORT_COLUMNS = [
+    { key: "employeeid", label: "Employee ID" },
+    { key: "name", label: "Name" },
+    { key: "phone", label: "Phone" },
+    { key: "officeid", label: "Office ID" },
+    { key: "location", label: "Location" },
+    { key: "employee_role", label: "Role" },
+    { key: "fathers_name", label: "Father Name" },
+    { key: "dob", label: "DOB" },
+    { key: "address", label: "Address" },
+    { key: "district", label: "District" },
+    { key: "state", label: "State" },
+    { key: "pin_code", label: "Pincode" },
+    {
+      key: "aadhar_number",
+      label: "Aadhar Number",
+    },
+    { key: "pan_card", label: "PAN Card" },
+    {
+      key: "driving_license_no",
+      label: "DL Number",
+    },
+    { key: "rc_number", label: "RC Number" },
+    { key: "ac_name", label: "Account Name" },
+    { key: "ifsc", label: "IFSC" },
+    {
+      key: "account_num",
+      label: "Account Number",
+    },
+    ...(userType === "super" ? [{ key: "salary", label: "Salary" }] : []),
+  ];
 
   return (
     <section className="flex flex-col overflow-hidden">
@@ -482,7 +481,7 @@ function EmployeeListPage() {
             type="button"
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 transition-all duration-200 flex items-center gap-2"
             style={{ color: HEADER_BLUE }}
-            onClick={() => exportCsv(filteredRows, "employees")}
+            onClick={() => exportCsv(filteredRows, EXPORT_COLUMNS, "employees")}
           >
             <FiDownload size={16} />
             Export CSV
@@ -644,14 +643,16 @@ function EmployeeListPage() {
                             />
                           </td>
                           <td className={`${cellPad} whitespace-nowrap`}>
-                            <button
-                              onClick={() => openEditModal(row)}
-                              className="rounded-lg p-2 text-sm transition-all duration-200 hover:bg-blue-100 hover:scale-105"
-                              style={{ color: HEADER_BLUE }}
-                              title="Edit employee details"
-                            >
-                              <FiEdit2 size={18} />
-                            </button>
+                            {userType === "super" && (
+                              <button
+                                onClick={() => openEditModal(row)}
+                                className="rounded-lg p-2 text-sm transition-all duration-200 hover:bg-blue-100 hover:scale-105"
+                                style={{ color: HEADER_BLUE }}
+                                title="Edit employee details"
+                              >
+                                <FiEdit2 size={18} />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );

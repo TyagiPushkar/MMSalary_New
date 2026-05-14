@@ -119,12 +119,41 @@ function AddEmployeePage() {
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
   );
-
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!id) return;
-    setHiddenIds((prev) => new Set(prev).add(id));
-  };
 
+    const baseurl = "https://namami-infotech.com/MMSalary/Employee/";
+
+    try {
+      const url =
+        user?.type === "super"
+          ? `${baseurl}delete_request_employee.php`
+          : `${baseurl}delete_temp_employee.php`;
+
+      const response = await axios.post(
+        url,
+        {
+          id: id,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (response.data.status) {
+        setHiddenIds((prev) => new Set(prev).add(id));
+
+        console.log("Deleted Successfully");
+      } else {
+        console.log(response.data.message);
+      }
+    } catch (error) {
+      console.error(error?.response?.data?.message || error.message);
+    }
+  };
   const openRegistrationModal = (row) => {
     setSelectedEmployee(row);
     setRegForm({ ...row });
