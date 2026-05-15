@@ -22,6 +22,7 @@ function AddSalary({
   const [officesLoading, setOfficesLoading] = useState(false);
   const [localSalary, setLocalSalary] = useState("");
   const [localOffices, setLocalOffices] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchOffices = useCallback(async () => {
     if (!token) return;
@@ -71,6 +72,15 @@ function AddSalary({
     }
     // Yahan se fetchOffices hata diya taaki infinite loop na bane
   }, [open, addsalary]);
+  //fileteed offices for search
+  const filteredOffices = offices
+    .filter((off) => {
+      const name = String(off).toLowerCase();
+      return name.includes(searchTerm.toLowerCase());
+    })
+    .sort((a, b) => {
+      return String(a).localeCompare(String(b));
+    });
 
   const handleSalaryChange = (e) => {
     const value = e.target.value;
@@ -90,10 +100,14 @@ function AddSalary({
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (localSalary === "" || localSalary === null || localSalary === undefined) {
-  alert("Please enter salary amount");
-  return;
-}
+    if (
+      localSalary === "" ||
+      localSalary === null ||
+      localSalary === undefined
+    ) {
+      alert("Please enter salary amount");
+      return;
+    }
 
     // if (localOffices.length === 0) {
     //   alert("Please select at least one office");
@@ -136,7 +150,7 @@ function AddSalary({
 
         <form className="flex flex-col gap-6 overflow-y-auto p-5 sm:max-h-[60vh] sm:p-6">
           {/* Employee Info */}
-          <div className="rounded-lg bg-slate-50 p-4 grid grid-cols-2 gap-4">
+          <div className="rounded-lg bg-slate-50 p-4 grid grid-cols-3 gap-4">
             <div>
               <p className="text-xs font-semibold text-slate-600">Employee</p>
               <p className="text-sm font-bold text-slate-900">
@@ -147,6 +161,12 @@ function AddSalary({
               <p className="text-xs font-semibold text-slate-600">Phone</p>
               <p className="text-sm font-bold text-slate-900">
                 {selectedEmployee?.phone || "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-600">officeid</p>
+              <p className="text-sm font-bold text-slate-900">
+                {selectedEmployee?.officeid || "N/A"}
               </p>
             </div>
           </div>
@@ -168,6 +188,12 @@ function AddSalary({
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <span
+              // key={id}
+              className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800"
+            >
+              {selectedEmployee?.officeid || "N/A"}
+            </span>
             {localOffices.map((id) => (
               <span
                 key={id}
@@ -187,9 +213,19 @@ function AddSalary({
 
           {/* Office Selection */}
           <div>
-            <label className="block text-xs font-bold text-slate-800 mb-3">
-              Select Offices * ({localOffices.length} selected)
-            </label>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <label className="text-xs font-bold text-slate-800">
+                Select Offices * ({localOffices.length} selected)
+              </label>
+
+              <input
+                type="text"
+                placeholder="Search office..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-56 rounded-md border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+              />
+            </div>
 
             {officesLoading ? (
               <div className="text-center py-4 border rounded-lg text-slate-500">
@@ -201,7 +237,7 @@ function AddSalary({
               </div>
             ) : (
               <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-300 p-2">
-                {offices.map((off, index) => {
+                {filteredOffices.map((off, index) => {
                   const id = String(off.id || off); // Handle both object or primitive
                   const name = off.name || off.office_name || `${id}`;
                   return (

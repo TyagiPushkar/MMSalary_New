@@ -189,6 +189,11 @@ function AddEmployeePage() {
     // console.log("Submitting FormData:", [...formData.entries()]);
 
     // console.log("Converted Object:", obj);
+    // Aadhaar validation
+    if (!obj.aadhar_number || obj.aadhar_number.trim() === "") {
+      alert("Aadhar number is required!");
+      return;
+    }
 
     const res = await dispatch(
       addEmployeeThunk({

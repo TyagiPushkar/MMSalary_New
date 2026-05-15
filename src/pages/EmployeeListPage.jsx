@@ -31,6 +31,7 @@ import { fetchOfficesThunk } from "../store/slices/officeSlice";
 import { FaFilter, FaTimes } from "react-icons/fa";
 import axios from "axios";
 import { fetchRolesThunk } from "../store/slices/roleSlice";
+import { IconDelete } from "../components/addEmployee/AddEmployeeIcons";
 
 const HEADER_BLUE = "#1547bd";
 const HEADER_GRADIENT = "linear-gradient(135deg, #1547bd 0%, #1e5ad1 100%)";
@@ -53,6 +54,7 @@ const ALL_COLUMNS = [
   { key: "officeid", label: "Office ID", type: "text", icon: FiMapPin },
   { key: "location", label: "Location", type: "text", icon: FiMapPin },
   { key: "employee_role", label: "Role", type: "text", icon: FiBriefcase },
+  { key: "time", label: "Joining Date", type: "text", icon: FiCalendar },
   { key: "fathers_name", label: "Father Name", type: "text", icon: FiUser },
   { key: "dob", label: "DOB", type: "text", icon: FiCalendar },
   { key: "address", label: "Address", type: "text", icon: FiHome },
@@ -147,6 +149,11 @@ function EmployeeListPage() {
   const [files, setFiles] = useState({});
 
   const auth = useSelector((state) => state.auth);
+  //deletion state define
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteEmployeeId, setDeleteEmployeeId] = useState(null);
+  const [deleteDate, setDeleteDate] = useState("");
+  // Banner state
 
   const [banner, setBanner] = useState(null);
   const [modalError, setModalError] = useState(null);
@@ -158,6 +165,7 @@ function EmployeeListPage() {
     phone: "",
     employee_role: "",
     officeid: "",
+    status: "", // 👈 ADD THIS
   });
   const { roles } = useSelector((state) => state.roles);
 
@@ -365,6 +373,7 @@ function EmployeeListPage() {
       // const result = await dispatch(updateEmployeeDetailsThunk(formData)).unwrap();
       // console.log("SUCCESS Response:", result);
       const result = await axios.post(
+        // `https://namami-infotech.com/MMSalary/Employee/update_employee_test.php`,
         `https://namami-infotech.com/MMSalary/Employee/update_employee.php`,
         formData,
         {
@@ -396,6 +405,68 @@ function EmployeeListPage() {
     }
   };
 
+  const handledelete = async (employeeid, status) => {
+    if (status == 1) {
+      alert("Cannot delete active employee. Please deactivate first.");
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this employee?\nThis will remove the picture on aws.\nThis will remove the employee from the system permanently.",
+      )
+    ) {
+      return;
+    }
+
+    // Modal open
+    setDeleteEmployeeId(employeeid);
+    setDeleteDate(new Date().toISOString().split("T")[0]);
+    setDeleteModalOpen(true);
+  };
+  const confirmDeleteEmployee = async () => {
+    try {
+      await axios.delete(
+        `https://namami-infotech.com/MMSalary/Employee/delete_employee.php`,
+        {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+            "Content-Type": "application/json",
+          },
+
+          data: {
+            employeeid: deleteEmployeeId,
+            date: deleteDate,
+          },
+        },
+      );
+
+      setBanner({
+        type: "success",
+        text: "Employee deleted successfully",
+      });
+
+      setTimeout(() => setBanner(null), 3000);
+
+      setDeleteModalOpen(false);
+      setDeleteEmployeeId(null);
+
+      dispatch(fetchEmployeesThunk());
+    } catch (err) {
+      console.error("ERROR Message:", err.message);
+      console.error("ERROR Response:", err.response?.data);
+      console.error("ERROR Status:", err.response?.status);
+
+      setBanner({
+        type: "error",
+        text:
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to delete employee",
+      });
+    }
+  };
+
   const getFullImageUrl = (path) => {
     if (!path || path === "None") return null;
     if (path.startsWith("http")) return path;
@@ -406,6 +477,7 @@ function EmployeeListPage() {
     { key: "name", label: "Name" },
     { key: "phone", label: "Phone" },
     { key: "officeid", label: "Office ID" },
+    { key: "time", label: "Joining Date" },
     { key: "location", label: "Location" },
     { key: "employee_role", label: "Role" },
     { key: "fathers_name", label: "Father Name" },
@@ -430,6 +502,7 @@ function EmployeeListPage() {
       key: "account_num",
       label: "Account Number",
     },
+    { key: "status", label: "Status" },
     ...(userType === "super" ? [{ key: "salary", label: "Salary" }] : []),
   ];
 
@@ -562,9 +635,39 @@ function EmployeeListPage() {
                       </th>
                     ))}
                     <th
-                      className={`${cellPad} text-left font-semibold whitespace-nowrap border-b border-white/20 w-24`}
+                      // key={col.key}
+                      className="text-left font-semibold whitespace-nowrap border-b border-white/20 relative"
                     >
-                      Status
+                      <div className="flex items-center justify-between gap-2">
+                        <span>Status</span>
+
+                        <button
+                          onClick={() => toggleFilter("status")}
+                          className="hover:text-gray-300"
+                        >
+                          {activeFilter === "status" ? (
+                            <FaTimes size={12} />
+                          ) : (
+                            <FaFilter size={12} />
+                          )}
+                        </button>
+                      </div>
+
+                      {activeFilter === "status" && (
+                        <div className="absolute top-full left-0 mt-1 w-full px-2 z-20">
+                          <select
+                            value={filters.status}
+                            onChange={(e) =>
+                              handleInputChange("status", e.target.value)
+                            }
+                            className="w-full p-2 text-sm border rounded bg-white shadow text-black"
+                          >
+                            {/* <option value="">All Status</option> */}
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                          </select>
+                        </div>
+                      )}
                     </th>
                     <th
                       className={`${cellPad} text-left font-semibold whitespace-nowrap border-b border-white/20 w-24`}
@@ -644,14 +747,27 @@ function EmployeeListPage() {
                           </td>
                           <td className={`${cellPad} whitespace-nowrap`}>
                             {userType === "super" && (
-                              <button
-                                onClick={() => openEditModal(row)}
-                                className="rounded-lg p-2 text-sm transition-all duration-200 hover:bg-blue-100 hover:scale-105"
-                                style={{ color: HEADER_BLUE }}
-                                title="Edit employee details"
-                              >
-                                <FiEdit2 size={18} />
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => openEditModal(row)}
+                                  className="rounded-lg p-2 text-sm transition-all duration-200 hover:bg-blue-100 hover:scale-105"
+                                  style={{ color: HEADER_BLUE }}
+                                  title="Edit employee details"
+                                >
+                                  <FiEdit2 size={18} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  title="Remove from queue"
+                                  onClick={() => {
+                                    handledelete(row.employeeid, row.status);
+                                  }}
+                                  className="inline-flex rounded-md p-1.5 text-rose-600 transition hover:bg-rose-100"
+                                >
+                                  <IconDelete />
+                                </button>
+                              </>
                             )}
                           </td>
                         </tr>
@@ -772,6 +888,7 @@ function EmployeeListPage() {
                         "officeid",
                         "location",
                         "employee_role",
+                        "time",
                         "fathers_name",
                         "dob",
                         "address",
@@ -873,7 +990,8 @@ function EmployeeListPage() {
                               <img
                                 src={imageUrl}
                                 alt={col.label}
-                                className="h-32 w-full object-cover rounded-lg transition-transform duration-300"
+                                className="h-32 w-full object-cover rounded-lg transition-transform duration-300 cursor-pointer"
+                                onClick={() => window.open(imageUrl, "_blank")}
                               />
                               {/* Hover Image Preview */}
                               {hoveredImage && (
@@ -1387,6 +1505,38 @@ function EmployeeListPage() {
                 className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#1547bd] to-[#1e5ad1] text-white font-medium hover:shadow-lg transition-all duration-200 text-sm"
               >
                 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* deleteion model */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-lg font-bold mb-4">Select Deletion Date</h2>
+
+            <input
+              type="date"
+              value={deleteDate}
+              onChange={(e) => setDeleteDate(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 mb-5"
+            />
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteModalOpen(false)}
+                className="px-4 py-2 border rounded-lg"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={confirmDeleteEmployee}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg"
+              >
+                Delete
               </button>
             </div>
           </div>

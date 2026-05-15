@@ -37,6 +37,7 @@ function RequestEmployeesDataTable({
                     "Phone",
                     "Office",
                     "Location",
+                    "Date/Time Req",
                     "Role",
                     "Actions",
                   ].map((h) => (
@@ -79,6 +80,9 @@ function RequestEmployeesDataTable({
                       </td>
                       <td className={`${cellBase} max-w-[140px] truncate`}>
                         {row.location ?? "—"}
+                      </td>
+                      <td className={`${cellBase} max-w-[140px] truncate`}>
+                        {row.time ?? "—"}
                       </td>
                       <td className={`${cellBase} max-w-[120px] truncate`}>
                         {row.employee_role ?? "—"}

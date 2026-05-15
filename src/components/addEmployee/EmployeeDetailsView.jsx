@@ -76,9 +76,7 @@ function EmployeeDetailsView({ data }) {
 
         {/* Info */}
         <div className="flex-1">
-          <h2 className="text-2xl font-semibold text-slate-900">
-            {name}
-          </h2>
+          <h2 className="text-2xl font-semibold text-slate-900">{name}</h2>
 
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div>
@@ -94,9 +92,7 @@ function EmployeeDetailsView({ data }) {
             {email !== "—" && (
               <div className="sm:col-span-2">
                 <p className="text-slate-500 text-xs uppercase">Email</p>
-                <p className="font-medium text-slate-800 break-all">
-                  {email}
-                </p>
+                <p className="font-medium text-slate-800 break-all">{email}</p>
               </div>
             )}
           </div>
@@ -112,8 +108,7 @@ function EmployeeDetailsView({ data }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {entries.map(([key, value]) => {
-              const val =
-                value == null || value === "" ? "—" : String(value);
+              const val = value == null || value === "" ? "—" : String(value);
 
               return (
                 <div
@@ -127,11 +122,13 @@ function EmployeeDetailsView({ data }) {
                   <div className="text-sm text-slate-900">
                     {isValidUrl(val) ? (
                       isImageUrl(val) ? (
-                        <img
-                          src={val}
-                          alt={key}
-                          className="mt-2 rounded-lg border max-h-44 w-full object-cover"
-                        />
+                        <a href={val} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={val}
+                            alt={key}
+                            className="mt-2 rounded-lg border max-h-44 w-full object-cover cursor-pointer hover:opacity-90 transition"
+                          />
+                        </a>
                       ) : (
                         <a
                           href={val}
