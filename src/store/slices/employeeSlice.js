@@ -6,11 +6,10 @@ export const fetchEmployeesThunk = createAsyncThunk(
   async (_, thunkApi) => {
     const { token, user } = thunkApi.getState().auth;
     const response = await employeeService.getEmployees({ token, user });
-    console.log("Fetched employees:", response.data);
+    // console.log("Fetched employees:", response.data);
     return response.data;
   },
 );
-
 
 export const fetchRequestEmployeesThunk = createAsyncThunk(
   "employees/fetchRequest",
@@ -79,6 +78,16 @@ export const updateEmployeeStatusThunk = createAsyncThunk(
     } catch (error) {
       return thunkApi.rejectWithValue(error.message || "Status update failed");
     }
+  },
+);
+
+export const fetchXEmployeesThunk = createAsyncThunk(
+  "employees/fetchXEmployees",
+  async (_, thunkApi) => {
+    const { token, user } = thunkApi.getState().auth;
+    const response = await employeeService.getXEmployees({ token, user });
+    console.log("Fetched X employees:", response.data);
+    return response.data;
   },
 );
 
@@ -166,6 +175,16 @@ const employeeSlice = createSlice({
       .addCase(updateEmployeeStatusThunk.rejected, (state, action) => {
         state.statusUpdateLoading = false;
         state.statusUpdateError = action.payload || "Unable to update status";
+      })
+      .addCase(fetchXEmployeesThunk.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchXEmployeesThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload;
+      })
+      .addCase(fetchXEmployeesThunk.rejected, (state) => {
+        state.loading = false;
       });
   },
 });

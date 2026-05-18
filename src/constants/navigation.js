@@ -37,6 +37,12 @@ export const NAV_ITEMS = [
     path: "/add_offices",
     types: [USER_TYPES.SUPER],
   },
+  {
+    key: "Ex Employees",
+    label: "Ex Employees",
+    path: "/exemployees",
+    types: [USER_TYPES.SUPER],
+  },
   // {
   //   key: "salary",
   //   label: "Salary",

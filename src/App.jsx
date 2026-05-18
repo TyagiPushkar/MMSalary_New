@@ -68,6 +68,7 @@ import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import ManageAdminPage from "./pages/ManageAdminpage";
 import { AddOfficesPage } from "./pages/AddOfficesPage";
+import ExEmployeePage from "./pages/ExEmployeePage";
 
 function App() {
   return (
@@ -88,6 +89,7 @@ function App() {
             <Route path="/salary" element={<SalaryPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/add_offices" element={<AddOfficesPage />} />
+            <Route path="/exemployees" element={<ExEmployeePage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Route>

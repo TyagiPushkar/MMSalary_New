@@ -149,4 +149,38 @@ export const employeeService = {
 
     return response.data;
   },
+
+  async getXEmployees({ token, user }) {
+    if (!token || !user) {
+      const fallback = await fakeApi.getEmployees();
+      return { data: fallback.data };
+    }
+
+    try {
+      if (
+        user.type !== "super" &&
+        (user.officeid == null || user.officeid === "")
+      ) {
+        return { data: [] };
+      }
+
+      const endpoint =
+        user.type === "super"
+          ? `${PHP_BASE_URL}/Employee/Ex_get_all_employee.php`
+          : `${PHP_BASE_URL}/Employee/fetch_employee_byofficeid.php?officeid=${encodeURIComponent(
+              user.officeid,
+            )}`;
+
+      const response = await axios.get(endpoint, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return { data: response.data?.data ?? [] };
+    } catch {
+      const fallback = await fakeApi.getEmployees();
+      return { data: fallback.data };
+    }
+  },
 };

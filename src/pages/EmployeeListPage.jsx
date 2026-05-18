@@ -106,21 +106,46 @@ function cellValue(row, key) {
 
 function exportCsv(rows, columns, suffix = "employees") {
   if (!rows.length) return;
+
   const keys = [...columns.map((c) => c.key)];
   const uniqueKeys = [...new Set(keys)];
-  const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  const header = uniqueKeys.join(",");
+
+  const header = columns.map((c) => c.label).join(",");
+
   const body = rows
-    .map((r) => uniqueKeys.map((k) => esc(r[k])).join(","))
+    .map((r) =>
+      uniqueKeys
+        .map((k) => {
+          let value = r[k] ?? "";
+
+          // Status convert
+          if (k === "status") {
+            value = value == 1 ? "Active" : "Inactive";
+          }
+
+          // Prevent Excel auto-formatting
+          if (["aadhar_number", "account_num", "phone", "time"].includes(k)) {
+            value = `="${value}"`;
+          }
+
+          // Escape CSV
+          return `"${String(value).replace(/"/g, '""')}"`;
+        })
+        .join(","),
+    )
     .join("\n");
+
   const blob = new Blob([`${header}\n${body}`], {
     type: "text/csv;charset=utf-8;",
   });
+
   const url = URL.createObjectURL(blob);
+
   const a = document.createElement("a");
   a.href = url;
   a.download = `${suffix}-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
+
   URL.revokeObjectURL(url);
 }
 
@@ -426,17 +451,20 @@ function EmployeeListPage() {
   };
   const confirmDeleteEmployee = async () => {
     try {
-      await axios.delete(
-        `https://namami-infotech.com/MMSalary/Employee/delete_employee.php`,
+      await axios.post(
+        "https://namami-infotech.com/MMSalary/Employee/delete_employee.php",
+
+        // BODY
+        {
+          employeeid: deleteEmployeeId,
+          date: deleteDate,
+        },
+
+        // CONFIG
         {
           headers: {
             Authorization: `Bearer ${auth.token}`,
             "Content-Type": "application/json",
-          },
-
-          data: {
-            employeeid: deleteEmployeeId,
-            date: deleteDate,
           },
         },
       );
@@ -477,20 +505,21 @@ function EmployeeListPage() {
     { key: "name", label: "Name" },
     { key: "phone", label: "Phone" },
     { key: "officeid", label: "Office ID" },
-    { key: "time", label: "Joining Date" },
-    { key: "location", label: "Location" },
-    { key: "employee_role", label: "Role" },
+    { key: "employee_role", label: "Designation" },
+    { key: "status", label: "Status" },
     { key: "fathers_name", label: "Father Name" },
     { key: "dob", label: "DOB" },
+    { key: "time", label: "Joining Date" },
+    { key: "location", label: "Location" },
     { key: "address", label: "Address" },
+    { key: "pin_code", label: "Pincode" },
     { key: "district", label: "District" },
     { key: "state", label: "State" },
-    { key: "pin_code", label: "Pincode" },
     {
       key: "aadhar_number",
       label: "Aadhar Number",
     },
-    { key: "pan_card", label: "PAN Card" },
+    { key: "pan_card", label: "PAN Number" },
     {
       key: "driving_license_no",
       label: "DL Number",
@@ -502,7 +531,6 @@ function EmployeeListPage() {
       key: "account_num",
       label: "Account Number",
     },
-    { key: "status", label: "Status" },
     ...(userType === "super" ? [{ key: "salary", label: "Salary" }] : []),
   ];
 
@@ -1515,7 +1543,7 @@ function EmployeeListPage() {
       {deleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-lg font-bold mb-4">Select Deletion Date</h2>
+            <h2 className="text-lg font-bold mb-4">Select Last Working Date</h2>
 
             <input
               type="date"
