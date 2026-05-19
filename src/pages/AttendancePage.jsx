@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import PageTitle from "../components/shared/PageTitle";
-import { fetchAttendanceByDateThunk } from "../store/slices/attendanceSlice";
+import {
+  fetchAttendanceByDateThunk,
+  fetchAttendanceByOneDateThunk,
+} from "../store/slices/attendanceSlice";
 import { FiDownload } from "react-icons/fi";
 import { FaFilter, FaTimes } from "react-icons/fa";
 
@@ -98,7 +101,9 @@ const formatDate = (dateStr) => {
 
 function AttendancePage() {
   const dispatch = useDispatch();
-  const { items, loading, error } = useSelector((state) => state.attendance);
+  const { items, range, loading, error } = useSelector(
+    (state) => state.attendance,
+  );
 
   const [searchName, setSearchName] = useState("");
   const [page, setPage] = useState(1);
@@ -106,7 +111,7 @@ function AttendancePage() {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0],
   );
-  const [toDate, setToDate] = useState(new Date().toISOString().split("T")[0]);
+  // const [toDate, setToDate] = useState(new Date().toISOString().split("T")[0]);
   const [appliedName, setAppliedName] = useState("");
   // Kaunsa filter open hai uska state
   const [activeFilter, setActiveFilter] = useState(null);
@@ -120,24 +125,25 @@ function AttendancePage() {
   });
 
   // Fetch attendance when date changes
+  // useEffect(() => {
+  //   dispatch(
+  //     fetchAttendanceByDateThunk({ fromdate: selectedDate, todate: toDate }),
+  //   );
+  // }, [dispatch, selectedDate, toDate]);
   useEffect(() => {
-    dispatch(
-      fetchAttendanceByDateThunk({ fromdate: selectedDate, todate: toDate }),
-    );
-  }, [dispatch, selectedDate, toDate]);
+    dispatch(fetchAttendanceByOneDateThunk({ date: selectedDate }));
+  }, [dispatch, selectedDate]);
 
   // Filter data by name on frontend
   // Filter data by multiple fields on frontend
   const filteredData = useMemo(() => {
     return items.filter((record) => {
-      // Main search by employee name
       const matchesSearch =
         !appliedName ||
         String(record.name || "")
           .toLowerCase()
           .includes(appliedName.toLowerCase());
 
-      // Column filters
       const matchesFilters = Object.keys(filters).every((key) => {
         if (!filters[key]) return true;
 
@@ -178,7 +184,8 @@ function AttendancePage() {
     setSearchName("");
     setAppliedName("");
     setSelectedDate(today);
-    setToDate(today);
+    setexportFromDate(today);
+    setexportToDate(today);
 
     setFilters({
       employeeid: "",
@@ -187,12 +194,40 @@ function AttendancePage() {
       entry_time: "",
       exit_time: "",
     });
+    setExportModalOpen(false);
 
     setPage(1);
   };
 
   const handleDateChange = (e) => {
     setSelectedDate(e.target.value);
+  };
+  //export modal state
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportfromDate, setexportFromDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [exportToDate, setexportToDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+
+  // Execute distinct independent API endpoint execution matrix for CSV ranges dumps
+  const confirmExport = async () => {
+    try {
+      const response = await dispatch(
+        fetchAttendanceByDateThunk({
+          fromdate: exportfromDate,
+          todate: exportToDate,
+        }),
+      );
+
+      const exportData = response?.payload?.data || response?.payload || [];
+
+      exportCsv(exportData, "attendance_report");
+      setExportModalOpen(false);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
@@ -248,10 +283,10 @@ function AttendancePage() {
           type="button"
           className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-medium hover:bg-slate-50 transition-all duration-200 flex items-center gap-1"
           style={{ color: HEADER_BLUE }}
-          onClick={() => exportCsv(filteredData, "employees")}
+          onClick={() => setExportModalOpen(true)}
         >
           <FiDownload size={16} />
-          Export CSV
+          Export Range CSV
         </button>
       </div>
 
@@ -283,7 +318,8 @@ function AttendancePage() {
 
             <div className="w-40">
               <label className="mb-1 block text-xs font-bold text-slate-700">
-                FROM
+                {/* FROM */}
+                DATE
               </label>
               <input
                 type="date"
@@ -292,7 +328,7 @@ function AttendancePage() {
                 className="w-full rounded-lg border-[1.5px] border-slate-300 px-3 py-2 text-sm outline-none transition hover:border-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25"
               />
             </div>
-            <div className="w-40">
+            {/* <div className="w-40">
               <label className="mb-1 block text-xs font-bold text-slate-700">
                 TO
               </label>
@@ -302,7 +338,7 @@ function AttendancePage() {
                 onChange={(e) => setToDate(e.target.value)}
                 className="w-full rounded-lg border-[1.5px] border-slate-300 px-3 py-2 text-sm outline-none transition hover:border-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25"
               />
-            </div>
+            </div> */}
 
             <button
               onClick={handleSearch}
@@ -503,6 +539,43 @@ function AttendancePage() {
           </div>
         </div>
       </div>
+      {/* export model */}
+      {exportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-lg font-bold mb-4">Export Attendance Data</h2>
+
+            <input
+              type="date"
+              value={exportfromDate}
+              onChange={(e) => setexportFromDate(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 mb-5"
+            />
+            <input
+              type="date"
+              value={exportToDate}
+              onChange={(e) => setexportToDate(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 mb-5"
+            />
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => handleReset()}
+                className="px-4 py-2 border rounded-lg"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={confirmExport}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg"
+              >
+                export
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

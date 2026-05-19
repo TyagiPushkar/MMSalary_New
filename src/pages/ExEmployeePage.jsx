@@ -35,6 +35,7 @@ const ESSENTIAL_COLUMNS = [
   { key: "phone", label: "Phone", minW: "min-w-[130px]" },
   { key: "employee_role", label: "Role", minW: "min-w-[120px]" },
   { key: "officeid", label: "Office ID", minW: "min-w-[120px]" },
+  { key: "time", label: "Joining Date", minW: "min-w-[120px]" },
   { key: "last_working_day", label: "Exit Date", minW: "min-w-[120px]" },
 ];
 
@@ -78,11 +79,11 @@ const ALL_COLUMNS = [
     icon: FiCreditCard,
   },
   { key: "salary", label: "Salary", type: "text", icon: FiDollarSign },
-  { key: "aadhar_photo", label: "Aadhar", type: "image", icon: FiImage },
-  { key: "pan_photo", label: "PAN", type: "image", icon: FiImage },
-  { key: "rc_photo", label: "RC", type: "image", icon: FiImage },
-  { key: "dl_photo", label: "DL", type: "image", icon: FiImage },
-  { key: "passbook_photo", label: "Passbook", type: "image", icon: FiImage },
+  // { key: "aadhar_photo", label: "Aadhar", type: "image", icon: FiImage },
+  // { key: "pan_photo", label: "PAN", type: "image", icon: FiImage },
+  // { key: "rc_photo", label: "RC", type: "image", icon: FiImage },
+  // { key: "dl_photo", label: "DL", type: "image", icon: FiImage },
+  // { key: "passbook_photo", label: "Passbook", type: "image", icon: FiImage },
 ];
 
 function getRowKey(row, index) {
@@ -126,6 +127,18 @@ function exportCsv(rows, columns, suffix = "ex-employees") {
   a.download = `${suffix}-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+function formatDateDMY(dateStr) {
+  if (!dateStr) return "—";
+
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+
+  return `${day}/${month}/${year}`;
 }
 
 function ExEmployeePage() {
@@ -218,15 +231,15 @@ function ExEmployeePage() {
     { key: "phone", label: "Phone" },
     { key: "officeid", label: "Office ID" },
     { key: "employee_role", label: "Designation" },
-    { key: "last_working_day", label: "Exit Date" },
     { key: "fathers_name", label: "Father Name" },
     { key: "dob", label: "DOB" },
     { key: "time", label: "Joining Date" },
+    { key: "last_working_day", label: "Exit Date" },
     { key: "location", label: "Location" },
     { key: "address", label: "Address" },
-    { key: "pin_code", label: "Pincode" },
-    { key: "district", label: "District" },
-    { key: "state", label: "State" },
+    // { key: "pin_code", label: "Pincode" },
+    // { key: "district", label: "District" },
+    // { key: "state", label: "State" },
     { key: "aadhar_number", label: "Aadhar Number" },
     { key: "pan_card", label: "PAN Number" },
     { key: "driving_license_no", label: "DL Number" },
@@ -381,20 +394,25 @@ function ExEmployeePage() {
                             >
                               {col.key === "name" ? (
                                 <div className="flex items-center gap-2">
-                                  {row.photo && (
+                                  {/* {row.photo && (
                                     <img
                                       src={getFullImageUrl(row.photo)}
                                       className="w-7 h-7 rounded-full object-cover"
                                     />
-                                  )}
+                                  )} */}
                                   <span className="font-medium">
                                     {cellValue(row, col.key)}
                                   </span>
                                 </div>
+                              ) : col.key === "time" ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                                  {/* <FiClock size={12} />{" "} */}
+                                  {formatDateDMY(cellValue(row, col.key))}
+                                </span>
                               ) : col.key === "last_working_day" ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
-                                  <FiClock size={12} />{" "}
-                                  {cellValue(row, col.key)}
+                                  {/* <FiClock size={12} />{" "} */}
+                                  {formatDateDMY(cellValue(row, col.key))}
                                 </span>
                               ) : (
                                 cellValue(row, col.key)
@@ -583,7 +601,7 @@ function ExEmployeePage() {
               </div>
 
               {/* Documents Section */}
-              <div>
+              {/* <div>
                 <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                   <div className="w-1 h-6 bg-gradient-to-b from-[#1547bd] to-[#1e5ad1] rounded-full"></div>
                   Documents
@@ -621,7 +639,7 @@ function ExEmployeePage() {
                     },
                   )}
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

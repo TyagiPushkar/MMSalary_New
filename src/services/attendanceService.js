@@ -12,8 +12,13 @@ const axiosInstance = axios.create({
 
 export const attendanceService = {
   async fetchAttendanceForOffice(officeid, { from, to }, token) {
-    const url = `/attandance/get_attandance_byofficeid.php?officeid=${officeid.trim()}&fromDate=${from}&toDate=${to}`;
-    //const url = `/attandance/test.php?officeid=${officeid.trim()}&fromDate=${from}&toDate=${to}`;
+    const cleanedOfficeId = officeid
+      .split(",")
+      .map((id) => id.trim())
+      .join(",");
+
+    const url = `/attandance/get_attandance_byofficeid.php?officeid=${cleanedOfficeId}&fromDate=${from}&toDate=${to}`;
+
     const config = {
       headers: {
         "Content-Type": "application/json",
@@ -25,7 +30,7 @@ export const attendanceService = {
     }
 
     const response = await axiosInstance.get(url, config);
-    //console.log("Attendance data for office", officeid, ":", response.data);
+
     return response.data?.data ?? [];
   },
 
@@ -67,25 +72,87 @@ export const attendanceService = {
       }
 
       // Handle multiple office IDs (comma-separated)
-      const officeIds = user.officeid
-        .split(",")
-        .map((id) => id.trim())
-        .filter((id) => id.length > 0);
+      // const officeIds = user.officeid
+      //   .split(",")
+      //   .map((id) => id.trim())
+      //   .filter((id) => id.length > 0);
 
       // Make parallel requests for all office IDs
-      const promises = officeIds.map((id) =>
-        this.fetchAttendanceForOffice(
-          id,
-          { from: formattedFromDate, to: formattedToDate },
-          token,
-        ),
+      // const promises = officeIds.map((id) =>
+      //   this.fetchAttendanceForOffice(
+      //     id,
+      //     { from: formattedFromDate, to: formattedToDate },
+      //     token,
+      //   ),
+      // );
+
+      // const results = await Promise.all(promises);
+      // const mergedData = results.flat();
+      // console.log("Merged attendance data:", mergedData);
+      // return {
+      //   data: mergedData,
+      // };
+    } catch (error) {
+      return {
+        data: [],
+        error: error.message,
+      };
+    }
+  },
+  async getAttendanceByOneDate({ token, user, date }) {
+    try {
+      const formattedFromDate = date || new Date().toISOString().split("T")[0];
+
+      if (user?.type === USER_TYPES.SUPER) {
+        const response = await axiosInstance.get(
+          `/attandance/get_all_attandance.php?date=${formattedFromDate}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        return {
+          data: response.data?.data ?? [],
+        };
+      }
+
+      if (!user?.officeid) {
+        return { data: [] };
+      }
+
+      // const officeIds = user.officeid
+      //   .split(",")
+      //   .map((id) => id.trim())
+      //   .filter((id) => id.length > 0);
+
+      // const promises = officeIds.map((id) =>
+      //   this.fetchAttendanceForOffice(
+      //     id,
+      //     { from: formattedFromDate, to: formattedFromDate },
+      //     token,
+      //   ),
+      // );
+
+      // const results = await Promise.all(promises);
+
+      // return {
+      //   data: results.flat(),
+      // };
+      // SINGLE API CALL
+      const response = await this.fetchAttendanceForOffice(
+        user.officeid, // del,namami
+        {
+          from: formattedFromDate,
+          to: formattedFromDate,
+        },
+        token,
       );
 
-      const results = await Promise.all(promises);
-      const mergedData = results.flat();
-      // console.log("Merged attendance data:", mergedData);
       return {
-        data: mergedData,
+        data: response ?? [],
       };
     } catch (error) {
       return {
