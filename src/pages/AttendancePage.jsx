@@ -222,6 +222,7 @@ function AttendancePage() {
       );
 
       const exportData = response?.payload?.data || response?.payload || [];
+      // console.log("Exporting data:", exportData);
 
       exportCsv(exportData, "attendance_report");
       setExportModalOpen(false);

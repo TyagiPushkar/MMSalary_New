@@ -11,7 +11,7 @@ export const fetchAttendanceByOneDateThunk = createAsyncThunk(
         user,
         date: formattedDate,
       });
-      console.log("pardeeep bhai", date, ":", result.data);
+      // console.log("pardeeep bhai", date, ":", result.data);
       return result.data || [];
     } catch (error) {
       return thunkApi.rejectWithValue(error.message);
@@ -24,13 +24,14 @@ export const fetchAttendanceByDateThunk = createAsyncThunk(
   async ({ fromdate, todate }, thunkApi) => {
     try {
       const { user, token } = thunkApi.getState().auth;
+      // console.log("Fetching attendance from", fromdate, "to", todate);
       const result = await attendanceService.getAttendanceByDate({
         token,
         user,
         from: fromdate,
         to: todate,
       });
-      // console.log("pardeeep bhai", date, ":", result.data);
+      // console.log("pardeeep bhai export", fromdate, "to", todate, ":", result.data);
       return result.data || [];
     } catch (error) {
       return thunkApi.rejectWithValue(error.message);

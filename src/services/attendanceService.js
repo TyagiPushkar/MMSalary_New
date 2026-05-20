@@ -72,26 +72,23 @@ export const attendanceService = {
       }
 
       // Handle multiple office IDs (comma-separated)
-      // const officeIds = user.officeid
-      //   .split(",")
-      //   .map((id) => id.trim())
-      //   .filter((id) => id.length > 0);
+      // console.log("User office ID(s):", user.officeid);
+      // console.log("dates was that was passed", {
+      //   from: formattedFromDate,
+      //   to: formattedToDate,
+      // });
+      const response = await this.fetchAttendanceForOffice(
+        user.officeid, // del,namami
+        {
+          from: formattedFromDate,
+          to: formattedToDate,
+        },
+        token,
+      );
 
-      // Make parallel requests for all office IDs
-      // const promises = officeIds.map((id) =>
-      //   this.fetchAttendanceForOffice(
-      //     id,
-      //     { from: formattedFromDate, to: formattedToDate },
-      //     token,
-      //   ),
-      // );
-
-      // const results = await Promise.all(promises);
-      // const mergedData = results.flat();
-      // console.log("Merged attendance data:", mergedData);
-      // return {
-      //   data: mergedData,
-      // };
+      return {
+        data: response ?? [],
+      };
     } catch (error) {
       return {
         data: [],

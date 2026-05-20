@@ -155,6 +155,17 @@ function ManageAdminPage() {
     officeid: "",
     active_status: "",
   });
+  const [officeSearch, setOfficeSearch] = useState("");
+  const filteredOffices = useMemo(() => {
+    return Object.entries(offices).filter(([key, office]) => {
+      const officeName =
+        typeof office === "object" && office !== null
+          ? office.officename || office.office_name
+          : office;
+
+      return officeName?.toLowerCase().includes(officeSearch.toLowerCase());
+    });
+  }, [offices, officeSearch]);
 
   // Add debounce hook
   function useDebounce(value, delay) {
@@ -1390,10 +1401,28 @@ function ManageAdminPage() {
               </div> */}
 
               {/* Office Access Section - Only officeid field */}
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">
-                  Office Access
-                </label>
+              <div className="space-y-3">
+                {/* Header */}
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-sm font-semibold text-slate-700">
+                    Office Access
+                  </label>
+
+                  <div className="relative w-64">
+                    <FiSearch
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      size={14}
+                    />
+
+                    <input
+                      type="text"
+                      placeholder="Search office..."
+                      value={officeSearch}
+                      onChange={(e) => setOfficeSearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#1547bd]"
+                    />
+                  </div>
+                </div>
 
                 {/* Selected Chips Display */}
                 {supervisorFormData.officeid &&
@@ -1456,7 +1485,8 @@ function ManageAdminPage() {
 
                 {/* Office Checkbox Grid - Stores names, not IDs */}
                 <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
-                  {Object.entries(offices).map(([key, office]) => {
+                  {/* {Object.entries(offices).map(([key, office]) => { */}
+                  {filteredOffices.map(([key, office]) => {
                     const officeName =
                       typeof office === "object" && office !== null
                         ? office.officename || office.office_name
