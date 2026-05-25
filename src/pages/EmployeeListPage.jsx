@@ -125,7 +125,7 @@ function exportCsv(rows, columns, suffix = "employees") {
 
           // Prevent Excel auto-formatting
           if (["aadhar_number", "account_num", "phone", "time"].includes(k)) {
-            value = `="${value}"`;
+            value = `\t${value}`;
           }
 
           // Escape CSV

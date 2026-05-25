@@ -110,8 +110,10 @@ function exportCsv(rows, columns, suffix = "ex-employees") {
       keys
         .map((k) => {
           let value = r[k] ?? "";
-          if (["aadhar_number", "account_num", "phone"].includes(k))
-            value = `="${value}"`;
+          // Prevent Excel auto-formatting
+          if (["aadhar_number", "account_num", "phone", "time"].includes(k)) {
+            value = `\t${value}`;
+          }
           return `"${String(value).replace(/"/g, '""')}"`;
         })
         .join(","),

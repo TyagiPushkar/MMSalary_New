@@ -144,6 +144,7 @@ function ManageAdminPage() {
     // position: editFormData.position || "",
     // station_type: editFormData.station_type || "",
   });
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const [activeFilter, setActiveFilter] = useState(null);
 
@@ -289,10 +290,17 @@ function ManageAdminPage() {
 
         return rowValue.includes(filters[key].toLowerCase());
       });
+      // ✅ NEW STATUS FILTER
+      const statusMatch =
+        statusFilter === "all"
+          ? true
+          : statusFilter === "active"
+            ? row.active_status == 1
+            : row.active_status == 0;
 
-      return quickMatch && columnMatch;
+      return quickMatch && columnMatch && statusMatch;
     });
-  }, [items, quickFilter, filters]);
+  }, [items, quickFilter, filters, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   const currentPage = Math.min(Math.max(1, page), totalPages);
@@ -743,11 +751,51 @@ function ManageAdminPage() {
                     >
                       Reset
                     </th>
-                    <th
+                    {/* <th
                       className="px-2 py-2 text-left font-semibold whitespace-nowrap border-b border-white/20 w-14"
                       title="Toggle active/inactive status"
                     >
                       Status
+                    </th> */}
+                    <th className="px-2 py-2 text-left font-semibold whitespace-nowrap border-b border-white/20 w-14 relative">
+                      <div className="flex items-center justify-between gap-2">
+                        <span>Status</span>
+
+                        <button
+                          onClick={() =>
+                            setActiveFilter(
+                              activeFilter === "active_status"
+                                ? null
+                                : "active_status",
+                            )
+                          }
+                          className="hover:text-gray-300 transition-colors"
+                        >
+                          {activeFilter === "active_status" ? (
+                            <FaTimes size={12} />
+                          ) : (
+                            <FaFilter size={12} />
+                          )}
+                        </button>
+                      </div>
+
+                      {activeFilter === "active_status" && (
+                        <div className="absolute top-full left-0 mt-1 w-full px-1 z-20">
+                          <select
+                            value={statusFilter}
+                            onChange={(e) => {
+                              setStatusFilter(e.target.value);
+                              setPage(1);
+                            }}
+                            className="w-full rounded border border-gray-300 px-2 py-1 text-xs text-black shadow-lg outline-none focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                          >
+                            <option value="all">All</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                          </select>
+                        </div>
+                      )}
                     </th>
                     <th className="px-2 py-2 text-left font-semibold whitespace-nowrap border-b border-white/20 w-10">
                       Action

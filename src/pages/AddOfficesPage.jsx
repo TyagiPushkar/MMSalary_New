@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+// import { exportCsv } from "../utils/exportCsv";
 import { useDispatch, useSelector } from "react-redux";
 import PageTitle from "../components/shared/PageTitle";
 import {
@@ -8,12 +9,68 @@ import {
   updateOfficeStatusThunk,
 } from "../store/slices/officeSlice";
 // import officeService from "../services/officeService";
-import { FiEdit2 } from "react-icons/fi";
+import { FiDownload, FiEdit2 } from "react-icons/fi";
 import StatusToggle from "../components/shared/StatusToggle";
 import { FaFilter, FaTimes } from "react-icons/fa";
 
 const HEADER_BLUE = "#1547bd";
 
+function exportCsv(rows, columns, suffix = "offices") {
+  if (!rows || rows.length === 0) {
+    alert("No data available to export");
+    return;
+  }
+
+  // Header Row
+  const headers = columns.map((col) => col.label).join(",");
+
+  // Data Rows
+  const csvRows = rows.map((row) =>
+    columns
+      .map((col) => {
+        let value = row[col.key] ?? "";
+
+        // Status formatting
+        if (col.key === "active_status") {
+          value = Number(value) === 1 ? "Active" : "Inactive";
+        }
+
+        // Escape quotes
+        value = String(value).replace(/"/g, '""');
+
+        return `"${value}"`;
+      })
+      .join(","),
+  );
+
+  // Final CSV
+  const csvContent = [headers, ...csvRows].join("\n");
+
+  // Blob
+  const blob = new Blob(["\uFEFF" + csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const url = window.URL.createObjectURL(blob);
+
+  // Download Link
+  const link = document.createElement("a");
+
+  link.href = url;
+
+  link.setAttribute(
+    "download",
+    `${suffix}-${new Date().toISOString().split("T")[0]}.csv`,
+  );
+
+  document.body.appendChild(link);
+
+  link.click();
+
+  document.body.removeChild(link);
+
+  window.URL.revokeObjectURL(url);
+}
 export const AddOfficesPage = () => {
   const dispatch = useDispatch();
 
@@ -227,7 +284,7 @@ export const AddOfficesPage = () => {
         subtitle="View and manage office records."
       />
 
-      <div className="flex flex-wrap">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={openAddModal}
@@ -243,6 +300,27 @@ export const AddOfficesPage = () => {
           onChange={(e) => setSearchText(e.target.value)}
           className="ml-2 rounded-lg border border-slate-300 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
+        <button
+          type="button"
+          onClick={() =>
+            exportCsv(
+              filteredData,
+              [
+                { key: "id", label: "ID" },
+                { key: "office_id", label: "Office Name" },
+                { key: "lat", label: "Latitude" },
+                { key: "lon", label: "Longitude" },
+                { key: "active_status", label: "Status" },
+              ],
+              "offices",
+            )
+          }
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 transition-all duration-200 flex items-center gap-2"
+          style={{ color: HEADER_BLUE }}
+        >
+          <FiDownload size={16} />
+          Export CSV
+        </button>
       </div>
 
       {banner && !modalOpen ? (
@@ -311,7 +389,7 @@ export const AddOfficesPage = () => {
                           {office.lon || "—"}
                         </td>
                         {/* Status Toggle Slide Button */}
-                        <td className="px-3 py-2 text-center whitespace-nowrap">
+                        <td className="px-3 py-2 whitespace-nowrap">
                           <StatusToggle
                             isActive={office.active_status == 1}
                             onToggle={() => handleStatusToggle(office)}
