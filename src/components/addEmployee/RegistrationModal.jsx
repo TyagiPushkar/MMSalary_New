@@ -43,7 +43,9 @@ function RegistrationModal({
   // Hooks must be called before early return
   // File upload states (documents only, no profile photo upload)
   const [files, setFiles] = useState({
+    // aadharPhoto: null,
     aadharPhoto: null,
+    aadharBackPhoto: null,
     panPhoto: null,
     dlPhoto: null,
     rcPhoto: null,
@@ -71,9 +73,16 @@ function RegistrationModal({
     Object.keys(regForm).forEach((key) => {
       formData.append(key, regForm[key]);
     });
+      
+    if (!formData.has("gender")) {
+    formData.append("gender", "male");
+  }
+
 
     // Add all document photos
+    // if (files.aadharPhoto) formData.append("aadhar_photo", files.aadharPhoto);
     if (files.aadharPhoto) formData.append("aadhar_photo", files.aadharPhoto);
+    if (files.aadharBackPhoto) formData.append("aadhar_back_photo", files.aadharBackPhoto);
     if (files.panPhoto) formData.append("pan_photo", files.panPhoto);
     if (files.dlPhoto) formData.append("dl_photo", files.dlPhoto);
     if (files.rcPhoto) formData.append("rc_photo", files.rcPhoto);
@@ -214,6 +223,23 @@ function RegistrationModal({
                   className={fieldClass}
                 />
               </label> */}
+
+              {/* Added Gender Dropdown Block */}
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-bold text-slate-800">
+                  Gender
+                </span>
+                <select
+                  name="gender"
+                  value={regForm.gender || "male"}
+                  onChange={onRegChange}
+                  className={fieldClass}
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="others">Others</option>
+                </select>
+              </label>
             </div>
           </div>
 
@@ -326,12 +352,27 @@ function RegistrationModal({
                   className={fieldClass}
                 />
               </label>
-              <FileUploadInput
+              {/* <FileUploadInput
                 label="Upload Aadhar"
                 field="aadharPhoto"
                 files={files}
                 onFileChange={handleFileChange}
-              />
+              /> */}
+                <div className="grid grid-cols-2 gap-4">
+                    <FileUploadInput
+                      label="Upload Aadhar (Front)"
+                      field="aadharPhoto"
+                      files={files}
+                      onFileChange={handleFileChange}
+                    />
+                    <FileUploadInput
+                      label="Upload Aadhar (Back)"
+                      field="aadharBackPhoto"
+                      files={files}
+                       onFileChange={handleFileChange}
+                   />
+                </div>
+                
               <label className="block text-sm">
                 <span className="mb-1 block text-xs font-bold text-slate-800">
                   PAN Number
