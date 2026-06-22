@@ -147,6 +147,7 @@ function ManageAdminPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const [activeFilter, setActiveFilter] = useState(null);
+  // const [officeSearch, setOfficeSearch] = useState("");
 
   const [filters, setFilters] = useState({
     employeeid: "",
@@ -1067,7 +1068,7 @@ function ManageAdminPage() {
                 const value = editFormData[col.key] ?? "";
 
                 return (
-                  <label
+                  <div
                     key={col.key}
                     className={`block text-sm ${isTextarea ? "sm:col-span-2" : ""}`}
                   >
@@ -1096,18 +1097,24 @@ function ManageAdminPage() {
 
                                     <button
                                       type="button"
-                                      className="ml-1 hover:text-red-600 text-[#1547bd] font-bold"
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+
                                         const newNames = String(value)
                                           .split(",")
-                                          .filter((name) => name !== officeName)
+                                          .filter(
+                                            (name) =>
+                                              name.trim() !== officeName.trim(),
+                                          )
                                           .join(",");
 
-                                        setEditFormData({
-                                          ...editFormData,
+                                        setEditFormData((prev) => ({
+                                          ...prev,
                                           [col.key]: newNames,
-                                        });
+                                        }));
                                       }}
+                                      className="ml-1 text-red-500 hover:text-red-700 font-bold"
                                     >
                                       ✕
                                     </button>
@@ -1135,19 +1142,28 @@ function ManageAdminPage() {
                         {multiSelectOpen && (
                           <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
                             <div className="p-2 border-b flex justify-between">
-                              <span className="text-xs font-semibold text-slate-500">
-                                Select Offices
-                              </span>
+                              <div className="p-2 border-b">
+                                <input
+                                  type="text"
+                                  placeholder="Search office..."
+                                  value={officeSearch}
+                                  onChange={(e) =>
+                                    setOfficeSearch(e.target.value)
+                                  }
+                                  className="w-full rounded-md border border-slate-300 px-1 py-2 text-sm"
+                                />
+                              </div>
                               <button
                                 onClick={() => setMultiSelectOpen(false)}
-                                className="text-xs text-slate-400"
+                                className="text-xs text-slate-800"
                               >
                                 Done
                               </button>
                             </div>
 
                             <div className="p-2 space-y-1">
-                              {Object.entries(offices).map(([key, office]) => {
+                              {/* {Object.entries(offices).map(([key, office]) => { */}
+                              {filteredOffices.map(([key, office]) => {
                                 const officeName =
                                   typeof office === "object"
                                     ? office.officename || office.office_name
@@ -1175,16 +1191,12 @@ function ManageAdminPage() {
                                       type="checkbox"
                                       checked={isSelected}
                                       onChange={(e) => {
-                                        let updated = selectedNames;
+                                        if (!e.target.checked) return;
 
-                                        if (e.target.checked) {
-                                          if (!updated.includes(officeName)) {
-                                            updated.push(officeName);
-                                          }
-                                        } else {
-                                          updated = updated.filter(
-                                            (name) => name !== officeName,
-                                          );
+                                        const updated = [...selectedNames];
+
+                                        if (!updated.includes(officeName)) {
+                                          updated.push(officeName);
                                         }
 
                                         setEditFormData({
@@ -1230,7 +1242,7 @@ function ManageAdminPage() {
                         placeholder={`Enter ${col.label.toLowerCase()}`}
                       />
                     )}
-                  </label>
+                  </div>
                 );
               })}
             </div>
