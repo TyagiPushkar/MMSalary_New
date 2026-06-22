@@ -186,9 +186,12 @@ function AddEmployeePage() {
       return;
     }
     const obj = Object.fromEntries(formData.entries());
-    // console.log("Submitting FormData:", [...formData.entries()]);
 
-    // console.log("Converted Object:", obj);
+    if(!obj.gender){
+       obj.gender ='male'
+    }
+    console.log("Submitting FormData:", [...formData.entries()]);
+    console.log("Converted Object:", obj);
     // Aadhaar validation
     if (!obj.aadhar_number || obj.aadhar_number.trim() === "") {
       alert("Aadhar number is required!");
