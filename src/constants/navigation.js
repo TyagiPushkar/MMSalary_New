@@ -43,6 +43,13 @@ export const NAV_ITEMS = [
     path: "/exemployees",
     types: [USER_TYPES.SUPER],
   },
+
+  {
+    key: "PF Records",
+    label: "PF Records",
+    path: "/pf",
+   types: [USER_TYPES.SUPER],
+  },
   // {
   //   key: "salary",
   //   label: "Salary",
