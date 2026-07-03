@@ -69,6 +69,7 @@ import SettingsPage from "./pages/SettingsPage";
 import ManageAdminPage from "./pages/ManageAdminpage";
 import { AddOfficesPage } from "./pages/AddOfficesPage";
 import ExEmployeePage from "./pages/ExEmployeePage";
+import PfPage from "./pages/PfPage";
 
 function App() {
   return (
@@ -91,6 +92,7 @@ function App() {
             <Route path="/add_offices" element={<AddOfficesPage />} />
             <Route path="/exemployees" element={<ExEmployeePage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/pf" element={<PfPage />} />
           </Route>
         </Route>
       </Route>
