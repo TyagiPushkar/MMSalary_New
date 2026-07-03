@@ -50,6 +50,7 @@ const ALL_COLUMNS = [
   { key: "employeeid", label: "Employee ID", type: "text", icon: FiUser },
   { key: "photo", label: "Photo", type: "image", icon: FiImage },
   { key: "name", label: "Name", type: "text", icon: FiUser },
+  { key: "gender", label: "Gender", type: "text", icon: FiUser },
   { key: "phone", label: "Phone", type: "text", icon: FiPhone },
   { key: "officeid", label: "Office ID", type: "text", icon: FiMapPin },
   { key: "location", label: "Location", type: "text", icon: FiMapPin },
@@ -85,6 +86,7 @@ const ALL_COLUMNS = [
   },
   { key: "salary", label: "Salary", type: "text", icon: FiDollarSign },
   { key: "aadhar_photo", label: "Aadhar", type: "image", icon: FiImage },
+  { key: "aadhar_back", label: "Aadhar Back", type: "image", icon: FiImage },
   { key: "pan_photo", label: "PAN", type: "image", icon: FiImage },
   { key: "rc_photo", label: "RC", type: "image", icon: FiImage },
   { key: "dl_photo", label: "DL", type: "image", icon: FiImage },
@@ -183,6 +185,8 @@ function EmployeeListPage() {
   const [banner, setBanner] = useState(null);
   const [modalError, setModalError] = useState(null);
   const [activeFilter, setActiveFilter] = useState(null);
+  //serach office ke liye
+  const [officeSearch, setOfficeSearch] = useState("");
   // Filter values store karne ke liye
   const [filters, setFilters] = useState({
     employeeid: "",
@@ -238,6 +242,10 @@ function EmployeeListPage() {
   const toggleFilter = (field) => {
     setActiveFilter(activeFilter === field ? null : field);
   };
+
+  const filteredOffices = (officeItems || []).filter((office) =>
+    String(office).toLowerCase().includes(officeSearch.toLowerCase()),
+  );
 
   const handleInputChange = (field, value) => {
     setFilters((prev) => ({
@@ -914,6 +922,7 @@ function EmployeeListPage() {
                         "name",
                         "phone",
                         "officeid",
+                        "gender",
                         "location",
                         "employee_role",
                         "time",
@@ -1253,15 +1262,47 @@ function EmployeeListPage() {
                       className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
                     />
                   </div>
+
+                  {/* gender changed to select */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Gender
+                    </label>
+                    <select
+                      value={editForm?.gender || ""}
+                      onChange={(e) =>
+                        handleEditChange("gender", e.target.value)
+                      }
+                      className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 focus:border-[#1547bd] focus:ring-2 focus:ring-[#1547bd]/20 transition-all text-sm"
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
               {/* Multiple Office Access - Full Width with Primary Selection */}
               {/* Multiple Office Access - Full Width */}
               <div className="mt-5">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">
-                  Offices Access
-                </label>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Offices Access
+                  </label>
+
+                  <div className="relative w-48">
+                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={officeSearch}
+                      onChange={(e) => setOfficeSearch(e.target.value)}
+                      className="w-full pl-8 pr-2 py-1.5 text-xs rounded-lg border border-slate-600 focus:border-[#1547bd] focus:ring-1 focus:ring-[#1547bd]/20"
+                    />
+                  </div>
+                </div>
 
                 {/* 1. Selected Chips Section */}
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -1304,7 +1345,8 @@ function EmployeeListPage() {
 
                 {/* 2. Checkbox List */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-3 border border-slate-200 rounded-lg bg-white">
-                  {(officeItems || []).map((office) => {
+                  {/* {(officeItems || []).map((office) => { */}
+                  {(filteredOffices || []).map((office) => {
                     const selectedOffices = editForm?.officeid || [];
                     const isChecked = selectedOffices.some(
                       (id) => String(id) === String(office),
