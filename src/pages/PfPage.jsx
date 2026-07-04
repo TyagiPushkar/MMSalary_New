@@ -60,7 +60,7 @@ function PfPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1); 
   const [backendRows, setBackendRows] = useState([]); // Connect your dynamic API records here
-
+  const [allRecordsCached, setAllRecordsCached] = useState([]);
    // Tracks whether the bulk action toolbar is expanded/visible
   const [showBulkPanel, setShowBulkPanel] = useState(false);
 
@@ -106,11 +106,18 @@ function PfPage() {
         //   file_no: inlineFilters.File_No
            
 
-          id: debouncedFilters.ID,
-          location: debouncedFilters.Location,
-          month: debouncedFilters.Month,
-          emp_code_inline: debouncedFilters.Emp_Code, 
-          file_no: debouncedFilters.File_No
+          // id: debouncedFilters.ID,
+          // location: debouncedFilters.Location,
+          // month: debouncedFilters.Month,
+          // emp_code_inline: debouncedFilters.Emp_Code, 
+          // file_no: debouncedFilters.File_No
+
+
+        id: debouncedFilters.ID,
+        month: debouncedFilters.Month,
+        emp_code_inline: debouncedFilters.Emp_Code, // If backend uses a shared key, you can also try fallback to 'emp_code'
+        location: debouncedFilters.Location,
+        file_no: debouncedFilters.File_No
 
         },
       });
@@ -501,7 +508,7 @@ const handleExcelExportAll = async () => {
         )}
 
         {/* Data View Grid Workspace */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto max-h-[calc(70vh-80px)]">
             {loading ? (
             <div className="flex items-center justify-center py-12">
               <p className="text-sm text-slate-500 animate-pulse">Fetching data from live server...</p>
@@ -512,7 +519,7 @@ const handleExcelExportAll = async () => {
                 <tr>
 
                     {/* 👇 NEW: Master Checkbox Header Cell 👇 */}
-                    <th className="px-4 py-3 text-center w-12">
+                    <th className="px-4 py-3 text-center w-12"  style={{ backgroundColor: HEADER_BLUE }}>
                       <input
                         type="checkbox"
                         className="w-4 h-4 rounded cursor-pointer accent-blue-600"
@@ -528,7 +535,7 @@ const handleExcelExportAll = async () => {
                       </th>
                     {/* <th className="px-4 py-3 font-semibold text-white">ID</th> */}
                                     {/* 1. ID Filter Column */}
-                        <th className="px-4 py-3 font-semibold text-white relative whitespace-nowrap">
+                        <th className="px-4 py-3 font-semibold text-white relative whitespace-nowrap" style={{ backgroundColor: HEADER_BLUE }}>
                         <div className="flex items-center justify-between gap-2">
                             <span>ID</span>
                             <button onClick={() => toggleFilter("ID")} className="hover:text-gray-300 transition-colors">
@@ -551,7 +558,7 @@ const handleExcelExportAll = async () => {
                         </th>
 
                         {/* 2. Month Filter Column */}
-                    <th className="px-4 py-3 font-semibold text-white relative whitespace-nowrap">
+                    <th className="px-4 py-3 font-semibold text-white relative whitespace-nowrap" style={{ backgroundColor: HEADER_BLUE }}>
                     <div className="flex items-center justify-between gap-2">
                         <span>Month</span>
                         <button onClick={() => toggleFilter("Month")} className="hover:text-gray-300 transition-colors">
@@ -573,7 +580,7 @@ const handleExcelExportAll = async () => {
                     </th>
 
                     {/* 🆕 3. Employee Code Filter Column */}
-                        <th className="px-4 py-3 font-semibold text-white relative whitespace-nowrap">
+                        <th className="px-4 py-3 font-semibold text-white relative whitespace-nowrap" style={{ backgroundColor: HEADER_BLUE }}>
                         <div className="flex items-center justify-between gap-2">
                             <span>Emp Code</span>
                             <button onClick={() => toggleFilter("Emp_Code")} className="hover:text-gray-300 transition-colors">
@@ -595,7 +602,7 @@ const handleExcelExportAll = async () => {
                         </th>
 
                         {/* 4. Location Filter Column */}
-                    <th className="px-4 py-3 font-semibold text-white relative whitespace-nowrap">
+                    <th className="px-4 py-3 font-semibold text-white relative whitespace-nowrap" style={{ backgroundColor: HEADER_BLUE }}>
                     <div className="flex items-center justify-between gap-2">
                         <span>Location</span>
                         <button onClick={() => toggleFilter("Location")} className="hover:text-gray-300 transition-colors">
@@ -619,11 +626,11 @@ const handleExcelExportAll = async () => {
                     {/* <th className="px-4 py-3 font-semibold text-white">Month</th>
                     <th className="px-4 py-3 font-semibold text-white">Emp Code</th> */}
                     {/* <th className="px-4 py-3 font-semibold text-white">Location</th> */}
-                    <th className="px-4 py-3 font-semibold text-white">Acc No</th>
-                    <th className="px-4 py-3 font-semibold text-white">IFSC</th>
-                    <th className="px-4 py-3 font-semibold text-white">Employee Name</th>
+                    <th className="px-4 py-3 font-semibold text-white" style={{ backgroundColor: HEADER_BLUE }}>Acc No</th>
+                    <th className="px-4 py-3 font-semibold text-white" style={{ backgroundColor: HEADER_BLUE }}>IFSC</th>
+                    <th className="px-4 py-3 font-semibold text-white" style={{ backgroundColor: HEADER_BLUE }}>Employee Name</th>
 
-                      <th className="px-4 py-3 font-semibold text-white relative whitespace-nowrap">
+                      <th className="px-4 py-3 font-semibold text-white relative whitespace-nowrap" style={{ backgroundColor: HEADER_BLUE }}>
                         <div className="flex items-center justify-between gap-2">
                             <span>File No</span>
                             <button onClick={() => toggleFilter("File_No")} className="hover:text-gray-300 transition-colors">
@@ -644,14 +651,14 @@ const handleExcelExportAll = async () => {
                             </div>
                         )}
                         </th>
-                    <th className="px-4 py-3 font-semibold text-white">Status</th>
-                    <th className="px-4 py-3 font-semibold text-white">Remarks</th>
+                    <th className="px-4 py-3 font-semibold text-white" style={{ backgroundColor: HEADER_BLUE }}>Status</th>
+                    <th className="px-4 py-3 font-semibold text-white" style={{ backgroundColor: HEADER_BLUE }}>Remarks</th>
 
-                    <th className="px-4 py-3 font-semibold text-white">Salary</th>
-                    <th className="px-4 py-3 font-semibold text-white">PF Emp</th>
-                    <th className="px-4 py-3 font-semibold text-white">ESIC Emp</th>
-                    <th className="px-4 py-3 font-semibold text-white">PF Com</th>
-                    <th className="px-4 py-3 font-semibold text-white">ESIC Com</th>
+                    <th className="px-4 py-3 font-semibold text-white" style={{ backgroundColor: HEADER_BLUE }}>Salary</th>
+                    <th className="px-4 py-3 font-semibold text-white" style={{ backgroundColor: HEADER_BLUE }}>PF Emp</th>
+                    <th className="px-4 py-3 font-semibold text-white" style={{ backgroundColor: HEADER_BLUE }}>ESIC Emp</th>
+                    <th className="px-4 py-3 font-semibold text-white" style={{ backgroundColor: HEADER_BLUE }}>PF Com</th>
+                    <th className="px-4 py-3 font-semibold text-white" style={{ backgroundColor: HEADER_BLUE }}>ESIC Com</th>
                     {/* <th className="px-4 py-3 font-semibold text-white">File No</th> */}
                      {/* 🆕 5. File No Filter Column */}
                         
