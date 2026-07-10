@@ -17,7 +17,7 @@ export const attendanceService = {
       .map((id) => id.trim())
       .join(",");
 
-    const url = `/attandance/get_attandance_byofficeid.php?officeid=${cleanedOfficeId}&fromDate=${from}&toDate=${to}`;
+    const url = `/attandance/get_attandance_byofficeid_new.php?officeid=${cleanedOfficeId}&fromDate=${from}&toDate=${to}`;
 
     const config = {
       headers: {
@@ -35,7 +35,7 @@ export const attendanceService = {
   },
 
   async fetchAllEmployeesAttendance({ from, to }, token) {
-    const url = `/attandance/get_all_employee_attandance.php?fromDate=${from}&toDate=${to}`;
+    const url = `/attandance/get_all_employee_attandance_new.php?fromDate=${from}&toDate=${to}`;
     // const url = `/attandance/test.php?fromDate=${from}&toDate=${to}`;
 
     const config = {
@@ -102,7 +102,7 @@ export const attendanceService = {
 
       if (user?.type === USER_TYPES.SUPER) {
         const response = await axiosInstance.get(
-          `/attandance/get_all_attandance.php?date=${formattedFromDate}`,
+          `/attandance/get_all_attandance_new.php?date=${formattedFromDate}`,
           {
             headers: {
               "Content-Type": "application/json",

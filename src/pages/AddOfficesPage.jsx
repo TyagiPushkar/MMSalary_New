@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 // import { exportCsv } from "../utils/exportCsv";
 import { useDispatch, useSelector } from "react-redux";
 import PageTitle from "../components/shared/PageTitle";
@@ -277,6 +277,33 @@ export const AddOfficesPage = () => {
     currentPage * pageSize,
   );
 
+     
+  const handleReset = () => {
+    setSearchText("");
+    setFilters({
+      id: "",
+      office_id: "",
+      lat: "",
+      lon: "",
+      active_status: "",
+    });
+    setActiveFilter(null);
+    setPage(1);
+  };
+
+  // 🎯 NEW: Computed reactive check to toggle background styles if filters are run
+  const isFilterApplied = useMemo(() => {
+    const hasTopSearch = searchText.trim() !== "";
+    const hasColumnFilters = Object.values(filters).some(
+      (val) => val !== undefined && val !== null && String(val).trim() !== ""
+    );
+    return hasTopSearch || hasColumnFilters;
+  }, [searchText, filters]);
+
+
+
+  
+
   return (
     <section className="flex flex-col gap-4 overflow-hidden">
       <PageTitle
@@ -320,6 +347,22 @@ export const AddOfficesPage = () => {
         >
           <FiDownload size={16} />
           Export CSV
+        </button>
+
+          <div className="flex-1" />
+
+        {/* 🎯 NEW: Right-aligned adaptive Reset Button */}
+        <button
+          type="button"
+          onClick={handleReset}
+          className="rounded-lg border-[1.5px] px-5 py-2 text-sm font-bold transition-all duration-200 shadow-sm hover:brightness-95"
+          style={
+            isFilterApplied
+              ? { backgroundColor: "#fef2f2", borderColor: "#f43f5e", color: "#e11d48" } // 🔴 Active Red State
+              : { backgroundColor: "#ffffff", borderColor: "#94a3b8", color: "#1e293b" } // ⚪ Default Gray State
+          }
+        >
+          Reset
         </button>
       </div>
 

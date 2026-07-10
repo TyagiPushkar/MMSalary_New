@@ -542,6 +542,46 @@ function EmployeeListPage() {
     ...(userType === "super" ? [{ key: "salary", label: "Salary" }] : []),
   ];
 
+
+  //  const hasActiveFilters = useMemo(() => {
+  //   const hasGlobalSearch = quickFilter.trim() !== "";
+  //   const hasColumnFilter = Object.values(filters).some(
+  //     (val) => val !== undefined && val !== null && String(val).trim() !== ""
+  //   );
+  //   return hasGlobalSearch || hasColumnFilter;
+  // }, [quickFilter, filters]);
+
+  const handleReset = () => {
+    // 1. Clear global search bar
+    setQuickFilter("");
+    
+    // 2. Clear all column-specific filters
+    setFilters({
+      employeeid: "",
+      name: "",
+      phone: "",
+      employee_role: "",
+      officeid: "",
+      status: "",
+    });
+    
+    // 3. Close any active filter input panel
+    setActiveFilter(null);
+    
+    // 4. Send pagination back to page 1
+    setPage(1);
+  };
+
+
+  const isFilterApplied = useMemo(() => {
+    const hasGlobalSearch = quickFilter.trim() !== "";
+    const hasColumnFilters = Object.values(filters).some(
+      (val) => val !== undefined && val !== null && String(val).trim() !== ""
+    );
+    return hasGlobalSearch || hasColumnFilters;
+  }, [quickFilter, filters]);
+
+
   return (
     <section className="flex flex-col overflow-hidden">
       <PageTitle
@@ -585,6 +625,54 @@ function EmployeeListPage() {
           </button>
 
           <div className="flex-1" />
+
+            {/* <button
+              type="button"
+               disabled={!hasActiveFilters}
+              // className="rounded-lg border border-rose-300 bg-white px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 transition-all duration-200 flex items-center gap-2 shadow-sm"
+               className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-sm ${
+              hasActiveFilters
+                ? "border-rose-300 bg-white text-rose-600 hover:bg-rose-50 cursor-pointer"
+                : "border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed opacity-60"
+            }`}
+              onClick={() => {
+                // 1. Clear global search
+                setQuickFilter("");
+                // 2. Clear all column-specific filters
+                setFilters({
+                  employeeid: "",
+                  name: "",
+                  phone: "",
+                  employee_role: "",
+                  officeid: "",
+                  status: "",
+                });
+                // 3. Close any active input dropdown over columns
+                setActiveFilter(null);
+                // 4. Reset back to page 1
+                setPage(1);
+              }}
+            >
+              <FaTimes size={14} />
+              Reset Filters
+            </button>
+           */}
+
+           {/* <button onClick={handleReset} className="rounded-lg border-[1.5px] border-slate-400 bg-white px-5 py-2 text-sm font-bold text-slate-800 transition hover:bg-slate-50">
+              Reset
+            </button> */}
+
+            <button 
+            onClick={handleReset} 
+            className="rounded-lg border-[1.5px] px-5 py-2 text-sm font-bold transition-all duration-200 shadow-sm hover:brightness-95"
+            style={
+              isFilterApplied
+                ? { backgroundColor: "#fef2f2", borderColor: "#f43f5e", color: "#e11d48" } // 🔴 Active Red State
+                : { backgroundColor: "#ffffff", borderColor: "#94a3b8", color: "#1e293b" } // ⚪ Default Slate State
+            }
+          >
+            Reset
+          </button>
 
           <button
             type="button"
