@@ -13,6 +13,7 @@ const HEADER_BLUE = "#1547bd";
 const EXPORT = [
   { key: "employeeid", label: "Employee ID" },
   { key: "name", label: "Employee Name" },
+  { key: "employee_role", label: "Designation" }, 
   { key: "officeid", label: "Office ID" },
   { key: "entry_date", label: "Entry Date" },
   { key: "entry_time", label: "Entry Time" },
@@ -122,6 +123,7 @@ function AttendancePage() {
     officeid: "",
     entry_time: "",
     exit_time: "",
+    employee_role: "",
   });
 
   // Fetch attendance when date changes
@@ -193,6 +195,7 @@ function AttendancePage() {
       officeid: "",
       entry_time: "",
       exit_time: "",
+      employee_role: "",
     });
     setExportModalOpen(false);
 
@@ -272,6 +275,30 @@ function AttendancePage() {
     </th>
   );
 
+
+  //   const isFilterApplied = useMemo(() => {
+  //   const hasSearchInput = searchName.trim() !== "";
+  //   const hasAppliedSearch = appliedName.trim() !== "";
+  //   const hasColumnFilters = Object.values(filters).some(
+  //     (val) => val !== undefined && val !== null && String(val).trim() !== ""
+  //   );
+  //   return hasSearchInput || hasAppliedSearch || hasColumnFilters;
+  // }, [searchName, appliedName, filters]);
+
+
+  const isFilterApplied = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const hasDateChanged = selectedDate !== today;
+    const hasSearchInput = searchName.trim() !== "";
+    const hasAppliedSearch = appliedName.trim() !== "";
+    const hasColumnFilters = Object.values(filters).some(
+      (val) => val !== undefined && val !== null && String(val).trim() !== ""
+    );
+    return hasDateChanged || hasSearchInput || hasAppliedSearch || hasColumnFilters;
+  }, [selectedDate, searchName, appliedName, filters]);
+
+
+
   return (
     <section className="flex flex-col gap-4 overflow-hidden">
       <div className="flex items-center justify-between">
@@ -349,12 +376,25 @@ function AttendancePage() {
               Search
             </button>
 
-            <button
+            {/* <button
               onClick={handleReset}
               className="rounded-lg border-[1.5px] border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-800 transition hover:bg-slate-50"
             >
               Reset
+            </button> */}
+            
+            <button
+              onClick={handleReset}
+              className="rounded-lg border-[1.5px] px-4 py-2 text-sm font-bold transition-all duration-200 shadow-sm hover:brightness-95"
+              style={
+                isFilterApplied
+                  ? { backgroundColor: "#fef2f2", borderColor: "#f43f5e", color: "#e11d48" } // 🔴 Active Red State
+                  : { backgroundColor: "#ffffff", borderColor: "#94a3b8", color: "#1e293b" } // ⚪ Default Gray State
+              }
+            >
+              Reset
             </button>
+
           </div>
         </div>
 
@@ -373,6 +413,7 @@ function AttendancePage() {
                 <tr>
                   {renderHeader("Employee ID", "employeeid")}
                   {renderHeader("Employee", "name")}
+                  {renderHeader("Designation", "employee_role")}
                   {renderHeader("Office ID", "officeid")}
                   {renderHeader("Entry Time", "entry_time", "time")}
                   {renderHeader("Exit Time", "exit_time", "time")}
@@ -415,6 +456,11 @@ function AttendancePage() {
                           {record.name}
                         </td>
 
+                        <td className="px-4 py-3 font-medium text-slate-900">
+                          {/* {record.designation} */}
+                          {record.employee_role || "—"}
+                        </td>
+                        
                         <td className="px-4 py-3 font-medium text-slate-900">
                           {record.officeid}
                         </td>

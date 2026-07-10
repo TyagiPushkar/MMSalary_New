@@ -251,6 +251,31 @@ function ExEmployeePage() {
     { key: "account_num", label: "Account Number" },
     ...(userType === "super" ? [{ key: "salary", label: "Salary" }] : []),
   ];
+  
+
+    const handleReset = () => {
+    setQuickFilter("");
+    setFilters({
+      employeeid: "",
+      name: "",
+      phone: "",
+      employee_role: "",
+      officeid: "",
+      last_working_day: "",
+    });
+    setActiveFilter(null);
+    setPage(1);
+  };
+
+  // 🎯 NEW: Computed reactive check to toggle background styles if filters are run
+  const isFilterApplied = useMemo(() => {
+    const hasGlobalSearch = quickFilter.trim() !== "";
+    const hasColumnFilters = Object.values(filters).some(
+      (val) => val !== undefined && val !== null && String(val).trim() !== ""
+    );
+    return hasGlobalSearch || hasColumnFilters;
+  }, [quickFilter, filters]);
+
 
   return (
     <section className="flex flex-col overflow-hidden">
@@ -266,6 +291,20 @@ function ExEmployeePage() {
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-5 py-3 bg-white">
           <div className="flex-1" />
+
+
+          <button
+            type="button"
+            onClick={handleReset}
+            className="rounded-lg border-[1.5px] px-4 py-2 text-sm font-bold transition-all duration-200 shadow-sm hover:brightness-95"
+            style={
+              isFilterApplied
+                ? { backgroundColor: "#fef2f2", borderColor: "#f43f5e", color: "#e11d48" } // 🔴 Active Red State
+                : { backgroundColor: "#ffffff", borderColor: "#94a3b8", color: "#1e293b" } // ⚪ Default Gray State
+            }
+          >
+            Reset
+          </button>
 
           <button
             type="button"

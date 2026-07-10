@@ -633,6 +633,35 @@ function ManageAdminPage() {
     </th>
   );
 
+
+
+     const handleReset = () => {
+    setQuickFilter("");
+    setStatusFilter("all");
+    setFilters({
+      employeeid: "",
+      admin_name: "",
+      email: "",
+      phone: "",
+      officeid: "",
+      active_status: "",
+    });
+    setActiveFilter(null);
+    setPage(1);
+  };
+
+  // 🎯 NEW: Watches if any filter drops from default states to toggle button color
+  const isFilterApplied = useMemo(() => {
+    const hasGlobalSearch = quickFilter.trim() !== "";
+    const hasStatusFilter = statusFilter !== "all";
+    const hasColumnFilters = Object.values(filters).some(
+      (val) => val !== undefined && val !== null && String(val).trim() !== ""
+    );
+    return hasGlobalSearch || hasStatusFilter || hasColumnFilters;
+  }, [quickFilter, statusFilter, filters]);
+
+
+
   return (
     <section className="flex flex-col gap-4 overflow-hidden">
       <PageTitle
@@ -709,6 +738,20 @@ function ManageAdminPage() {
           >
             Export CSV
           </button>
+
+           <button
+            type="button"
+            onClick={handleReset}
+            className="rounded border-[1.5px] px-3 py-1 text-xs font-bold transition-all duration-200 shadow-sm hover:brightness-95"
+            style={
+              isFilterApplied
+                ? { backgroundColor: "#fef2f2", borderColor: "#f43f5e", color: "#e11d48" } // 🔴 Active Red State
+                : { backgroundColor: "#ffffff", borderColor: "#94a3b8", color: "#1e293b" } // ⚪ Default Slate State
+            }
+          >
+            Reset
+          </button>
+
           <div className="ml-auto flex min-w-[200px] max-w-md flex-1 items-center gap-2">
             <label htmlFor="admin-quick-filter" className="sr-only">
               Quick filter

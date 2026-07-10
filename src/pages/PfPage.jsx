@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import PageTitle from "../components/shared/PageTitle";
 import { FaFilter, FaTimes } from "react-icons/fa";
 import axios from "axios";
@@ -342,6 +342,20 @@ const handleExcelExportAll = async () => {
       setLoading(false);
     }
   };
+
+
+  const isFilterApplied = useMemo(() => {
+    const hasMainSearches = 
+      searchName.trim() !== "" || 
+      searchAccNo.trim() !== "" || 
+      searchEmpCode.trim() !== "";
+      
+    const hasInlineFilters = Object.values(inlineFilters).some(
+      (val) => val !== undefined && val !== null && String(val).trim() !== ""
+    );
+    
+    return hasMainSearches || hasInlineFilters;
+  }, [searchName, searchAccNo, searchEmpCode, inlineFilters]);
 
 
   return (
