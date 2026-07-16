@@ -217,20 +217,30 @@ function AttendancePage() {
   // Execute distinct independent API endpoint execution matrix for CSV ranges dumps
   const confirmExport = async () => {
     try {
+      // Dispatch the thunk to fetch data for the date range
       const response = await dispatch(
         fetchAttendanceByDateThunk({
           fromdate: exportfromDate,
           todate: exportToDate,
         }),
-      );
+      ).unwrap();
 
-      const exportData = response?.payload?.data || response?.payload || [];
+      console.log( "Checking attendance data", response);
+
+      // Response is directly the data array from the thunk
+      const exportData = Array.isArray(response) ? response : response?.data || [];
       // console.log("Exporting data:", exportData);
+
+      if (!exportData || exportData.length === 0) {
+        alert("No attendance data found for the selected date range.");
+        return;
+      }
 
       exportCsv(exportData, "attendance_report");
       setExportModalOpen(false);
     } catch (err) {
-      console.error(err);
+      console.error("Export error:", err);
+      alert("Failed to export attendance data. Please try again.");
     }
   };
 
