@@ -10,7 +10,7 @@ const normalizeUserType = (incomingUser) => {
 
   return {
     ...incomingUser,
-    type: incomingUser.type || incomingUser.role || 'normal',
+    type: incomingUser.type || 'normal',
   }
 }
 
@@ -18,6 +18,7 @@ const user = normalizeUserType(storage.getUser())
 
 export const loginThunk = createAsyncThunk('auth/login', async (payload, thunkApi) => {
   const response = await authService.login(payload)
+  console.log(response);
   if (!response.status) {
     return thunkApi.rejectWithValue(response.message)
   }

@@ -84,8 +84,8 @@ function App() {
           <Route path="/employees" element={<EmployeeListPage />} />
           <Route path="/employee/add" element={<AddEmployeePage />} />
 
-          {/* Super Admin Only Routes */}
-          <Route element={<ProtectedRoute allowedTypes={["super"]} />}>
+          {/* Super Admin & Owner Routes */}
+          <Route element={<ProtectedRoute allowedTypes={["super", "owner"]} />}>
             <Route path="/admins" element={<ManageAdminPage />} />
             <Route path="/salary" element={<SalaryPage />} />
             <Route path="/reports" element={<ReportsPage />} />

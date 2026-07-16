@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSelector } from "react-redux";
 import PageTitle from "../components/shared/PageTitle";
 import { FaFilter, FaTimes } from "react-icons/fa";
 import axios from "axios";
@@ -6,8 +7,6 @@ import * as XLSX from "xlsx";
 
 const HEADER_BLUE = "#1547bd";
 const API_URL = "https://www.namami-infotech.com/MMSalary/Pf/get_pf.php";
-
-
 
  function exportToExcel(data, fileName = "PF_Records_Export") {
   if (!data || !data.length) {
@@ -18,7 +17,7 @@ const API_URL = "https://www.namami-infotech.com/MMSalary/Pf/get_pf.php";
     "Record ID": row.ID,
     "Month": row.Month,
     "Employee Code": row.Emp_Code,
-    "Location": row.Location,
+    "Location": row.Location,      
     "Account Number": row.Acc_No,
     "IFSC Code": row.Ifsc,
     "Employee Name": row.emp_name,
@@ -39,6 +38,19 @@ const API_URL = "https://www.namami-infotech.com/MMSalary/Pf/get_pf.php";
 }
 
 function PfPage() {
+  // Get user type from Redux auth store
+  // const { type } = useSelector(state => state.auth.user || {});
+
+  const user = useSelector(state => state.auth.user || {});
+   const { type } = user;
+
+
+console.log("type", type);      // owner / super / normal
+
+console.log("user",user);      // complete user object
+
+console.log("user.type", user.type);
+
   // 1. Backend Search/Filter State Hooks
   const [searchName, setSearchName] = useState("");
   const [searchAccNo, setSearchAccNo] = useState("");
@@ -224,6 +236,32 @@ function PfPage() {
       return;
     }
 
+     
+
+      if (user.type === "super") {
+
+        const blockedRecord = backendRows.find(row =>
+          selectedRowIds.includes(row.ID) &&
+          row["File no"] &&
+          row["File no"].toString().trim() !== "" &&
+          row["File no"] !== "—"
+        );
+
+        if (blockedRecord) {
+          alert("Can't edit this record. Only Owner can edit records that already have a File Number.");
+          return; // ❌ Stop here. No API call. No refresh.
+        }
+      }
+
+      if (
+        bulkFileNo.trim() === "" &&
+        bulkStatus.trim() === "" &&
+        bulkRemark.trim() === ""
+      ) {
+        alert("Please fill at least one field.");
+        return;
+      }
+
     setLoading(true);
     try {
       // 🆕 HIGHLIGHT: Replaced local array mapping with a direct POST network payload
@@ -231,19 +269,20 @@ function PfPage() {
         ids: selectedRowIds,
         file_no: bulkFileNo.trim(),
         status: bulkStatus.trim(),
-        remark: bulkRemark.trim()
+        remark: bulkRemark.trim(),
+        type: user.type,
       });
 
-      if (response.status === 200) {
+      // if (response.status === 200) {
         alert("Database updated successfully!");
         setSelectedRowIds([]);
         setBulkFileNo("");
         setBulkStatus("");
         setBulkRemark("");
-        
+           
         // 🆕 HIGHLIGHT: Re-fetches the fresh data from the database instantly
         fetchPfData(); 
-      }
+      
     } catch (err) {
       console.error("Bulk update network failure:", err);
       alert(err.response?.data?.message || "Failed to save bulk alterations to the database server.");

@@ -57,9 +57,9 @@ export const attendanceService = {
     try {
       const formattedFromDate = from || new Date().toISOString().split("T")[0];
       const formattedToDate = to || formattedFromDate; // Use the same date if 'to' is not provided
-      // const
 
-      if (user?.type === USER_TYPES.SUPER) {
+      // For SUPER and OWNER users, fetch all employees attendance
+      if (user?.type === USER_TYPES.SUPER || user?.type === USER_TYPES.OWNER) {
         const data = await this.fetchAllEmployeesAttendance(
           { from: formattedFromDate, to: formattedToDate },
           token,
@@ -100,7 +100,8 @@ export const attendanceService = {
     try {
       const formattedFromDate = date || new Date().toISOString().split("T")[0];
 
-      if (user?.type === USER_TYPES.SUPER) {
+      // For SUPER and OWNER users, fetch all attendance
+      if (user?.type === USER_TYPES.SUPER || user?.type === USER_TYPES.OWNER) {
         const response = await axiosInstance.get(
           `/attandance/get_all_attandance_new.php?date=${formattedFromDate}`,
           {

@@ -13,14 +13,14 @@ export const employeeService = {
 
     try {
       if (
-        user.type !== "super" &&
+        user.type !== "super" && user.type !== "owner" &&
         (user.officeid == null || user.officeid === "")
       ) {
         return { data: [] };
       }
 
       const endpoint =
-        user.type === "super"
+        user.type === "super" || user.type === "owner"
           ? `${PHP_BASE_URL}/Employee/get_all_employee.php`
           : `${PHP_BASE_URL}/Employee/fetch_employee_byofficeid.php?officeid=${encodeURIComponent(
               user.officeid,
@@ -48,14 +48,14 @@ export const employeeService = {
 
     try {
       if (
-        user.type !== "super" &&
+        user.type !== "super" && user.type !== "owner" &&
         (user.officeid == null || user.officeid === "")
       ) {
         return { data: [] };
       }
 
       const endpoint =
-        user.type === "super"
+        user.type === "super" || user.type === "owner"
           ? `${PHP_BASE_URL}/Employee/getall_req_employee.php`
           : `${PHP_BASE_URL}/Register/fetch_employee.php?officeid=${encodeURIComponent(
               user.officeid,
@@ -158,14 +158,14 @@ export const employeeService = {
 
     try {
       if (
-        user.type !== "super" &&
+        user.type !== "super" && user.type !== "owner" &&
         (user.officeid == null || user.officeid === "")
       ) {
         return { data: [] };
       }
 
       const endpoint =
-        user.type === "super"
+        user.type === "super" || user.type === "owner"
           ? `${PHP_BASE_URL}/Employee/Ex_get_all_employee.php`
           : `${PHP_BASE_URL}/Employee/fetch_employee_byofficeid.php?officeid=${encodeURIComponent(
               user.officeid,

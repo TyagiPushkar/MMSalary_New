@@ -1,5 +1,6 @@
 import { IconAdd, IconDelete, IconEye, IconMoney } from "./AddEmployeeIcons";
 import { ADD_EMPLOYEE_THEME, PAGE_SIZE } from "./addEmployeeTheme";
+import { useState, useEffect, useRef } from "react";
 
 function RequestEmployeesDataTable({
   loading,
@@ -9,11 +10,26 @@ function RequestEmployeesDataTable({
   onView,
   onAddRegistration,
   onRemove,
+  onReject,
 }) {
   const { headerBlue } = ADD_EMPLOYEE_THEME;
 
+  const [activeMenuId, setActiveMenuId] = useState(null);
+  const dropdownRef = useRef(null);
+
   const cellBase =
     "border-b border-slate-200 px-3 py-2.5 align-middle text-sm text-slate-900";
+
+
+    useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setActiveMenuId(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <div className="w-full">
@@ -61,7 +77,12 @@ function RequestEmployeesDataTable({
                     </td>
                   </tr>
                 ) : (
-                  pageRows.map((row, rowIdx) => (
+                  // pageRows.map((row, rowIdx) => (
+                   pageRows.map((row, rowIdx) => {
+                    const currentRowId = row.id ?? row.employeeid ?? `r-${rowIdx}`;
+                    const isMenuOpen = activeMenuId === currentRowId;
+
+                    return (
                     <tr
                       key={String(row.id ?? row.employeeid ?? `r-${rowIdx}`)}
                       className="border-b border-slate-100 hover:bg-slate-50/80 transition"
@@ -88,7 +109,25 @@ function RequestEmployeesDataTable({
                         {row.employee_role ?? "—"}
                       </td>
                       <td className={`${cellBase} whitespace-nowrap`}>
-                        <div className="flex flex-wrap items-center gap-1">
+                        {/* <div className="flex flex-wrap items-center gap-1"> */}
+                          <div className="inline-block text-left" ref={isMenuOpen ? dropdownRef : null}>
+                           
+                           <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuId(isMenuOpen ? null : currentRowId);
+                              }}
+                              className="inline-flex items-center justify-center p-2 rounded-full text-slate-600 hover:bg-slate-100 focus:outline-none transition-all duration-150"
+                            >
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z" transform="rotate(90 12 12)" />
+                              </svg>
+                            </button>
+
+                        {isMenuOpen && (
+                              <div className="absolute right-0 mt-1 w-48 rounded-xl bg-white shadow-xl border border-slate-200 py-1.5 z-30 divide-y divide-slate-100 animate-in fade-in slide-in-from-top-1 duration-100">
+
                           <button
                             type="button"
                             title="View details"
@@ -118,6 +157,32 @@ function RequestEmployeesDataTable({
                               <IconAdd />
                             </button>
                           )}
+
+                           {/* 🎯 3. NEW: Reject Action Button (Amber Theme) */}
+                          {isSuper && (
+                          <button
+                            type="button"
+                            title="Reject Request"
+                            onClick={() => onReject(row.id ?? row.employeeid)}
+                            className="inline-flex rounded-md p-1.5 text-amber-600 transition hover:bg-amber-100 hover:scale-105 duration-150"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </button>
+                           )}
+
                           <button
                             type="button"
                             title="Remove from queue"
@@ -126,10 +191,13 @@ function RequestEmployeesDataTable({
                           >
                             <IconDelete />
                           </button>
+                           </div>
+                          )} 
                         </div>
                       </td>
                     </tr>
-                  ))
+                  );
+                  })
                 )}
               </tbody>
             </table>
