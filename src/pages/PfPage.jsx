@@ -139,9 +139,12 @@ function PfPage() {
       setOnePageLimit(response.data.limit || 25);
 
 
-      const recordCount = response.data.total_count || response.data.data.length;
+      const recordCount = response.data.total || response.data.data.length;
       setTotalPages(
-        hasFilters ? 1 : Math.ceil(recordCount / 25)
+        // hasFilters ? 1 : Math.ceil(recordCount / 25)
+          hasFilters
+          ? 1
+          : Math.ceil(recordCount / response.data.limit)
       );
     }
   } catch (err) {
@@ -420,18 +423,7 @@ console.log(onePageLimit, "onePageLimit");
               </div>
 
               <button
-                // onClick={() => {
-                // // Instantly overwrites all rows currently loaded in the table view
-                // setBackendRows(prevRows =>
-                //     prevRows.map(row => ({ 
-                //     ...row, 
-                //     ...(bulkFileNo && { "File no": bulkFileNo }), 
-                //     ...(bulkStatus && { Status: bulkStatus }), 
-                //     ...(bulkRemark && { Remark: bulkRemark }) 
-                //     }))
-                // );
-                // }}
-                // className="rounded-lg px-5 py-2 text-sm font-bold text-white transition hover:bg-emerald-700" style={{ backgroundColor: HEADER_BLUE }}
+                
 
                 type="button"
                 onClick={handleApplyBulkChanges}
